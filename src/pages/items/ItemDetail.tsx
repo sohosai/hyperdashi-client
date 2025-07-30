@@ -18,7 +18,7 @@ export function ItemDetail() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
   
   // Fetch container information if item is stored in a container
-  const { container } = useContainer(item?.storage_type === 'container' ? item.container_id : null)
+  const { container } = useContainer(item?.storage_type === 'container' ? (item.container_id ?? null) : null)
 
   if (isLoading) {
     return (

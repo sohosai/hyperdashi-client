@@ -231,7 +231,7 @@ export function ContainersList() {
                 <SelectItem key="">すべての場所</SelectItem>
                 {uniqueLocations.map(location => (
                   <SelectItem key={location}>{location}</SelectItem>
-                ))}
+                )) as any}
               </Select>
               
               <div className="flex items-center">

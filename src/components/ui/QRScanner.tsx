@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { Button, Card, CardBody } from '@heroui/react'
 import { Camera, CameraOff } from 'lucide-react'
@@ -31,7 +31,6 @@ export function QRScanner({ onScan, onError, isActive, onToggle }: QRScannerProp
         (decodedText: string) => {
           console.log('QR Code scanned:', decodedText)
           onScan(decodedText)
-          setIsScanning(false)
         },
         (error: string) => {
           // Ignore frequent scanning errors - they're normal
@@ -41,7 +40,6 @@ export function QRScanner({ onScan, onError, isActive, onToggle }: QRScannerProp
           }
         }
       )
-      setIsScanning(true)
     }
 
     return () => {

@@ -777,7 +777,7 @@ export function ItemsList() {
                   <SelectItem key={location}>
                     {location}
                   </SelectItem>
-                ))}
+                )) as any}
               </Select>
               
               <Select
@@ -809,11 +809,11 @@ export function ItemsList() {
                 isDisabled={storageTypeFilter === 'location'}
               >
                 <SelectItem key="all">すべて</SelectItem>
-                {containers?.map((containerWithCount) => (
+                {(containers?.map((containerWithCount) => (
                   <SelectItem key={containerWithCount.id}>
                     {containerWithCount.name} ({containerWithCount.id})
                   </SelectItem>
-                )) || []}
+                )) || []) as any}
               </Select>
               
               <Input
