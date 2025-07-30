@@ -50,7 +50,6 @@ export function QRScanner({ onScan, onError, isActive, onToggle }: QRScannerProp
           console.error('Error clearing scanner:', error)
         }
         scannerRef.current = null
-        setIsScanning(false)
       }
     }
   }, [isActive, onScan, onError])
