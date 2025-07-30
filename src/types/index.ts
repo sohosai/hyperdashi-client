@@ -10,7 +10,7 @@ export interface Item {
   is_depreciation_target?: boolean
   connection_names?: string[]
   cable_color_pattern?: string[]
-  storage_locations?: string[]
+  storage_location?: string
   is_on_loan?: boolean
   qr_code_type?: 'qr' | 'barcode' | 'none'
   is_disposed?: boolean

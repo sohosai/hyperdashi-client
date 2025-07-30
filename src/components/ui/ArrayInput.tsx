@@ -9,6 +9,8 @@ interface ArrayInputProps {
   onChange: (values: string[]) => void
   maxItems?: number
   suggestions?: string[]
+  isReadOnly?: boolean
+  description?: string
 }
 
 export function ArrayInput({ 
@@ -17,7 +19,9 @@ export function ArrayInput({
   values, 
   onChange, 
   maxItems = 10,
-  suggestions = []
+  suggestions = [],
+  isReadOnly = false,
+  description
 }: ArrayInputProps) {
   const [inputValue, setInputValue] = useState('')
 
@@ -46,14 +50,15 @@ export function ArrayInput({
     }
   }
 
-  // Filter suggestions that aren't already in values
-  const availableSuggestions = suggestions.filter(suggestion => 
-    !values.includes(suggestion)
-  )
+  // Show all suggestions including those already used
+  const availableSuggestions = suggestions
 
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
+      {description && (
+        <p className="text-xs text-gray-500">{description}</p>
+      )}
       
       <div className="flex gap-2">
         <Autocomplete
@@ -65,6 +70,7 @@ export function ArrayInput({
           className="flex-1"
           allowsCustomValue
           menuTrigger="input"
+          isDisabled={isReadOnly}
         >
           {availableSuggestions.map((suggestion) => (
             <AutocompleteItem key={suggestion}>
@@ -77,7 +83,7 @@ export function ArrayInput({
           color="primary"
           variant="flat"
           onPress={addItem}
-          isDisabled={!inputValue.trim() || values.includes(inputValue.trim()) || values.length >= maxItems}
+          isDisabled={isReadOnly || !inputValue.trim() || values.includes(inputValue.trim()) || values.length >= maxItems}
         >
           <Plus size={16} />
         </Button>
@@ -90,14 +96,19 @@ export function ArrayInput({
               key={index}
               variant="flat"
               color="primary"
-              endContent={
+              endContent={!isReadOnly ? (
                 <button
-                  onClick={() => removeItem(index)}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    removeItem(index)
+                  }}
                   className="ml-1 hover:bg-red-100 rounded-full p-0.5"
                 >
                   <X size={12} />
                 </button>
-              }
+              ) : undefined}
             >
               {value}
             </Chip>

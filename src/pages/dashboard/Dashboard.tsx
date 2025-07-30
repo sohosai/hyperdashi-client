@@ -3,16 +3,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useItems, useLoans } from '@/hooks'
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { QrCode } from 'lucide-react'
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library'
+import { Html5Qrcode } from 'html5-qrcode'
 
 export function Dashboard() {
   const navigate = useNavigate()
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
   const [searchId, setSearchId] = useState('')
   const [searchError, setSearchError] = useState('')
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [isScanning, setIsScanning] = useState(false)
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null)
+  const qrScannerElementId = 'qr-scanner-container'
 
   // データ取得
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ 
@@ -98,121 +98,84 @@ export function Dashboard() {
     searchItemById(result)
   }, [searchItemById])
 
-  // カメラ開始
+  // カメラ開始（Html5Qrcode使用）
   const startCamera = async () => {
     try {
       setIsScanning(true)
       setSearchError('')
-      console.log('カメラ起動開始...')
+      console.log('Html5Qrcode スキャナー開始...')
 
-      const videoElement = videoRef.current
-      if (!videoElement) {
-        throw new Error('Video element not found')
+      // Html5Qrcode を初期化
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode(qrScannerElementId)
       }
-
-      // HTTPS環境かチェック
-      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        throw new Error('カメラアクセスにはHTTPS環境が必要です')
-      }
-
-      // navigator.mediaDevices が利用可能かチェック
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('このブラウザはカメラアクセスをサポートしていません')
-      }
-
-      // まず基本的なカメラアクセスを試行
-      console.log('カメラアクセス許可を要求中...')
-      let stream: MediaStream
       
+      // スキャン設定
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      }
+      
+      // コールバック関数
+      const qrCodeSuccessCallback = (decodedText: string, decodedResult: any) => {
+        console.log('コード読み取り成功:', {
+          text: decodedText,
+          format: decodedResult.result?.format?.formatName || 'Unknown'
+        })
+        handleCodeDetected(decodedText)
+      }
+      
+      const qrCodeErrorCallback = (errorMessage: string) => {
+        // エラーは静かに無視してスキャンを継続
+      }
+      
+      // カメラスキャンを開始（後面カメラ優先）
       try {
-        // 後面カメラを優先
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
-        })
-      } catch (backCameraError) {
-        console.warn('後面カメラの取得に失敗、前面カメラを試行:', backCameraError)
-        // 前面カメラまたは任意のカメラを試行
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
-        })
-      }
-      
-      console.log('カメラアクセス成功、ビデオ要素にストリームを設定中...')
-      videoElement.srcObject = stream
-      
-      // ビデオが再生可能になるまで待機
-      await new Promise((resolve) => {
-        videoElement.onloadedmetadata = () => {
-          console.log('ビデオメタデータ読み込み完了')
-          resolve(void 0)
-        }
-      })
-
-      // ZXing code reader を初期化
-      console.log('ZXing code reader を初期化中...')
-      if (!codeReaderRef.current) {
-        codeReaderRef.current = new BrowserMultiFormatReader()
-      }
-
-      // QRコード読み取り開始
-      console.log('QRコード読み取り開始...')
-      
-      // 継続的な読み取りのためのループ
-      const scan = () => {
-        if (!isScanning || !codeReaderRef.current || !videoElement.srcObject) return
+        await html5QrCodeRef.current.start(
+          { facingMode: 'environment' },
+          config,
+          qrCodeSuccessCallback,
+          qrCodeErrorCallback
+        )
+        console.log('Html5Qrcode スキャン開始成功')
         
+        // スキャナー開始後、スタイルを調整
+        setTimeout(() => {
+          const scanRegion = document.querySelector(`#${qrScannerElementId} > div`) as HTMLElement
+          if (scanRegion) {
+            scanRegion.style.position = 'relative'
+            scanRegion.style.border = 'none'
+            scanRegion.style.padding = '0'
+          }
+        }, 100)
+      } catch (cameraError) {
+        // 後面カメラに失敗した場合、前面カメラを試行
         try {
-          // ビデオの準備ができているかチェック
-          if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
-            return // ビデオがまだ準備できていない
-          }
-
-          // キャンバスを使用してビデオフレームをキャプチャ
-          const canvas = document.createElement('canvas')
-          const context = canvas.getContext('2d')
-          if (!context) return
+          await html5QrCodeRef.current.start(
+            { facingMode: 'user' },
+            config,
+            qrCodeSuccessCallback,
+            qrCodeErrorCallback
+          )
+          console.log('Html5Qrcode スキャン開始成功 (前面カメラ)')
           
-          canvas.width = videoElement.videoWidth
-          canvas.height = videoElement.videoHeight
-          context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-          
-          // Canvas から直接読み取り
-          const result = codeReaderRef.current.decode(canvas)
-          
-          if (result) {
-            console.log('QRコード読み取り成功:', result.getText())
-            handleCodeDetected(result.getText())
-            return
-          }
-        } catch (error) {
-          if (!(error instanceof NotFoundException)) {
-            console.warn('QRコード読み取りエラー:', error)
-          }
-        }
-        
-        // 継続的に読み取りを試行
-        if (isScanning) {
-          setTimeout(scan, 100)
+          // スキャナー開始後、スタイルを調整
+          setTimeout(() => {
+            const scanRegion = document.querySelector(`#${qrScannerElementId} > div`) as HTMLElement
+            if (scanRegion) {
+              scanRegion.style.position = 'relative'
+              scanRegion.style.border = 'none'
+              scanRegion.style.padding = '0'
+            }
+          }, 100)
+        } catch (fallbackError) {
+          throw new Error('カメラの起動に失敗しました: ' + fallbackError)
         }
       }
-      
-      // ビデオが再生されてから読み取り開始
-      videoElement.addEventListener('playing', () => {
-        console.log('ビデオ再生開始、スキャン開始')
-        scan()
-      })
-
-      console.log('カメラ起動完了')
 
     } catch (error) {
       console.error('カメラの起動に失敗しました:', error)
+      
       let errorMessage = 'カメラの起動に失敗しました。'
       
       if (error instanceof Error) {
@@ -232,17 +195,30 @@ export function Dashboard() {
     }
   }
 
-  // カメラ停止
+  // カメラ停止（Html5Qrcode用）
   const stopCamera = useCallback(() => {
-    if (codeReaderRef.current) {
-      codeReaderRef.current.reset()
+    console.log('Html5Qrcode スキャナー停止処理開始')
+    
+    // Html5Qrcodeを停止
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.stop().then(() => {
+        console.log('Html5Qrcode スキャナー停止成功')
+        html5QrCodeRef.current?.clear()
+        html5QrCodeRef.current = null
+      }).catch((error) => {
+        console.warn('Html5Qrcode スキャナー停止エラー:', error)
+        // エラーでも強制的にクリア
+        try {
+          html5QrCodeRef.current?.clear()
+          html5QrCodeRef.current = null
+        } catch (clearError) {
+          console.warn('Html5Qrcode クリアエラー:', clearError)
+        }
+      })
     }
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream
-      stream.getTracks().forEach(track => track.stop())
-      videoRef.current.srcObject = null
-    }
+    
     setIsScanning(false)
+    console.log('Html5Qrcode 停止処理完了')
   }, [])
 
   // モーダルが閉じられた時の処理
@@ -262,46 +238,56 @@ export function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">ダッシュボード</h1>
+      <div className="flex items-center gap-4 mb-8">
+        <img 
+          src="/hyperdashi.svg" 
+          alt="HyperDashi" 
+          className="h-16 w-16" 
+        />
+        <div>
+          <h1 className="text-3xl font-bold">HyperDashi</h1>
+          <p className="text-gray-600">物品管理システム</p>
+        </div>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         {stats.map((stat, index) => (
           <Card key={index} className="shadow-sm">
-            <CardBody>
-              <p className="text-sm text-gray-600">{stat.label}</p>
-              <p className={`text-3xl font-bold text-${stat.color}`}>{stat.value}</p>
+            <CardBody className="p-3 sm:p-6">
+              <p className="text-xs sm:text-sm text-gray-600">{stat.label}</p>
+              <p className={`text-xl sm:text-3xl font-bold text-${stat.color}`}>{stat.value}</p>
             </CardBody>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
-            <h2 className="text-xl font-semibold">クイックアクション</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">クイックアクション</h2>
           </CardHeader>
           <CardBody className="pt-0">
             <div className="space-y-3">
               <Link
                 to="/items/new"
-                className="block p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                className="block p-3 sm:p-4 rounded-lg border hover:bg-gray-50 transition-colors"
               >
-                <h3 className="font-medium">新規備品登録</h3>
-                <p className="text-sm text-gray-600">新しい備品を登録します</p>
+                <h3 className="text-sm sm:text-base font-medium">新規備品登録</h3>
+                <p className="text-xs sm:text-sm text-gray-600">新しい備品を登録します</p>
               </Link>
               <Link
                 to="/items"
-                className="block p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                className="block p-3 sm:p-4 rounded-lg border hover:bg-gray-50 transition-colors"
               >
-                <h3 className="font-medium">備品一覧</h3>
-                <p className="text-sm text-gray-600">すべての備品を確認・管理します</p>
+                <h3 className="text-sm sm:text-base font-medium">備品一覧</h3>
+                <p className="text-xs sm:text-sm text-gray-600">すべての備品を確認・管理します</p>
               </Link>
               <Link
                 to="/loans"
-                className="block p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                className="block p-3 sm:p-4 rounded-lg border hover:bg-gray-50 transition-colors"
               >
-                <h3 className="font-medium">貸出管理</h3>
-                <p className="text-sm text-gray-600">貸出履歴と返却管理を行います</p>
+                <h3 className="text-sm sm:text-base font-medium">貸出管理</h3>
+                <p className="text-xs sm:text-sm text-gray-600">貸出履歴と返却管理を行います</p>
               </Link>
               <button
                 onClick={onOpen}
@@ -311,7 +297,7 @@ export function Dashboard() {
                   <QrCode size={20} />
                   QR/バーコード読み取り
                 </h3>
-                <p className="text-sm text-gray-600">QRコードやバーコードから備品を検索します</p>
+                <p className="text-xs sm:text-sm text-gray-600">QRコードやバーコードから備品を検索します</p>
               </button>
             </div>
           </CardBody>
@@ -367,7 +353,7 @@ export function Dashboard() {
       </div>
 
       {/* QR/バーコード読み取りモーダル */}
-      <Modal isOpen={isOpen} onOpenChange={handleModalClose} size="lg">
+      <Modal isOpen={isOpen} onOpenChange={handleModalClose} size="2xl">
         <ModalContent>
           {(onClose) => (
             <>
@@ -415,29 +401,44 @@ export function Dashboard() {
                       )}
                     </div>
                     
-                    {isScanning && (
-                      <div className="relative">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          className="w-full h-64 bg-black rounded-lg"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-48 h-48 border-2 border-white border-dashed rounded-lg opacity-50"></div>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-2 text-center">
-                          QRコードまたはバーコードを枠内に合わせてください
-                        </p>
-                        <p className="text-xs text-gray-500 text-center">
-                          読み取りが成功すると自動的に検索されます
-                        </p>
-                      </div>
-                    )}
+                    {/* html5-qrcode用のコンテナ */}
+                    <div 
+                      className="relative"
+                      style={{
+                        minHeight: isScanning ? '300px' : '0'
+                      }}
+                    >
+                      <div
+                        id={qrScannerElementId}
+                        className={`w-full ${
+                          isScanning ? 'block' : 'hidden'
+                        }`}
+                        style={{
+                          position: 'relative',
+                          width: '100%',
+                          maxWidth: '500px',
+                          margin: '0 auto'
+                        }}
+                      />
+                      {isScanning && (
+                        <>
+                          <p className="text-sm text-gray-600 mt-2 text-center">
+                            QRコード・バーコードをカメラに向けてください
+                          </p>
+                          <p className="text-xs text-gray-500 text-center">
+                            対応形式: QR, データマトリックス, CODE128, CODE39, EAN, UPC等
+                          </p>
+                          <p className="text-xs text-gray-500 text-center">
+                            読み取りが成功すると自動的に検索されます
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className="text-sm text-gray-600">
                     <p>• 備品のラベルIDを直接入力するか、カメラでQRコード/バーコードを読み取ってください</p>
+                    <p>• 多種類のバーコード形式に対応しています（QR, CODE128, EAN等）</p>
                     <p>• 読み取り後、該当する備品の詳細画面に移動します</p>
                     {location.protocol !== 'https:' && location.hostname !== 'localhost' && (
                       <p className="text-warning mt-2">⚠️ カメラ機能を使用するにはHTTPS環境が必要です</p>

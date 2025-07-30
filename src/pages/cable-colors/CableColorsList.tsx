@@ -125,19 +125,21 @@ export function CableColorsList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">ケーブル色管理</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">ケーブル色管理</h1>
         <Button
           color="primary"
           startContent={<Plus size={20} />}
           onPress={openCreateForm}
+          size="sm"
+          className="text-xs sm:text-sm"
         >
-          新規色登録
+          <span className="hidden sm:inline">新規</span>色登録
         </Button>
       </div>
 
       <Card>
-        <CardBody className="p-0">
+        <CardBody className="p-0 overflow-x-auto">
           <Table
             aria-label="ケーブル色一覧"
             removeWrapper
@@ -158,11 +160,11 @@ export function CableColorsList() {
             }
           >
             <TableHeader>
-              <TableColumn>色見本</TableColumn>
-              <TableColumn>色名</TableColumn>
-              <TableColumn>カラーコード</TableColumn>
-              <TableColumn>作成日</TableColumn>
-              <TableColumn align="center">操作</TableColumn>
+              <TableColumn className="text-xs sm:text-sm">色見本</TableColumn>
+              <TableColumn className="text-xs sm:text-sm">色名</TableColumn>
+              <TableColumn className="text-xs sm:text-sm">カラーコード</TableColumn>
+              <TableColumn className="text-xs sm:text-sm">作成日</TableColumn>
+              <TableColumn align="center" className="text-xs sm:text-sm">操作</TableColumn>
             </TableHeader>
             <TableBody
               items={colors}
@@ -172,7 +174,7 @@ export function CableColorsList() {
             >
               {(color) => (
                 <TableRow key={color.id}>
-                  <TableCell>
+                  <TableCell className="text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-8 h-8 rounded border-2 border-gray-300"
@@ -181,20 +183,20 @@ export function CableColorsList() {
                       <Palette size={16} className="text-gray-400" />
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs sm:text-sm">
                     <span className="font-medium">{color.name}</span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs sm:text-sm">
                     <Chip variant="flat" color="default" size="sm">
                       {color.hex_code}
                     </Chip>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs sm:text-sm">
                     <span className="text-sm text-gray-600">
                       {new Date(color.created_at).toLocaleDateString('ja-JP')}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs sm:text-sm">
                     <div className="flex gap-1 justify-center">
                       <Button
                         isIconOnly

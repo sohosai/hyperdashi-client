@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="346.9729"
+   height="346.97455"
+   viewBox="0 0 346.9729 346.97455"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   sodipodi:docname="hyperdashi.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     inkscape:zoom="2.2131915"
+     inkscape:cx="198.35609"
+     inkscape:cy="156.1094"
+     inkscape:window-width="1920"
+     inkscape:window-height="1131"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <inkscape:page
+       x="0"
+       y="0"
+       width="346.9729"
+       height="346.97455"
+       id="page2"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-91.735367,-75.0476)">
+    <g
+       id="path1"
+       transform="matrix(1.7707927,0,0,1.7707927,-99.458772,-142.58224)"
+       style="stroke-width:0.621191;stroke-dasharray:none"
+       inkscape:label="本体">
+      <path
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.1;stroke-dasharray:none;stroke-opacity:0.47451"
+         d="m 245.8174,378.79234 c -44.48651,-6.37886 -84.45131,-37.4856 -102.09516,-79.46614 -7.74824,-18.43562 -11.19027,-40.69747 -9.50672,-61.48613 1.88628,-23.2919 8.76503,-43.1604 21.55511,-62.25953 19.33554,-28.8733 48.08274,-48.38057 82.21143,-55.78699 10.22329,-2.21861 35.22406,-3.11678 45.53969,-1.63605 29.52694,4.23836 52.99676,16.18622 74.89313,38.12609 19.23418,19.2724 29.78581,38.63292 35.74281,65.58225 1.55884,7.05217 1.8284,10.92569 1.85756,26.69204 0.0297,16.03372 -0.20967,19.55839 -1.8322,26.98375 -5.2689,24.11273 -16.7712,45.78916 -33.61215,63.34317 -21.42402,22.33109 -45.70131,35.06922 -75.54669,39.63882 -8.76232,1.34159 -30.67705,1.4918 -39.20681,0.26872 z"
+         id="path4"
+         transform="matrix(0.56471884,0,0,0.56471884,56.166242,80.518877)"
+         inkscape:label="背景"
+         inkscape:export-filename="path4.png"
+         inkscape:export-xdpi="96"
+         inkscape:export-ydpi="96" />
+      <path
+         style="fill:#ffd93d;fill-opacity:1;stroke-width:0.621191;stroke-dasharray:none"
+         d="m 215.46466,240.93196 c -63.52556,54.42497 -98.88537,-39.82293 -94.58623,-14.04559 9.01779,54.07007 59.57725,90.66491 122.32281,71.60906 50.97365,-15.48072 62.42311,-91.60662 24.99021,-91.07826 -22.53954,0.31814 -23.17152,8.19357 -52.72679,33.51479 z"
+         id="path2"
+         sodipodi:nodetypes="sssss"
+         inkscape:label="液体" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-weight:600;font-size:72px;line-height:0;font-family:'Noto Serif JP';-inkscape-font-specification:'Noto Serif CJK JP Semi-Bold';text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#2d2d2d;fill-opacity:1;stroke:none;stroke-width:42.211;stroke-opacity:0.47451"
+       x="148.34421"
+       y="261.20258"
+       id="text3"
+       inkscape:label="だし"><tspan
+         sodipodi:role="line"
+         id="tspan3"
+         x="148.34421"
+         y="261.20258"
+         style="font-size:72px;fill:#2d2d2d;fill-opacity:1">だし</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-weight:600;font-size:37.3333px;line-height:0;font-family:'Noto Serif JP';-inkscape-font-specification:'Noto Serif CJK JP Semi-Bold';text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#2d2d2d;fill-opacity:1;stroke:none;stroke-width:42.211;stroke-opacity:0.47451"
+       x="170.93065"
+       y="185.45483"
+       id="text3-3"
+       inkscape:label="だし"
+       transform="rotate(-0.607053)"><tspan
+         sodipodi:role="line"
+         id="tspan3-5"
+         x="170.93065"
+         y="185.45483"
+         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:37.3333px;font-family:'Noto Serif JP';-inkscape-font-specification:'Noto Serif JP Semi-Bold';fill:#2d2d2d;fill-opacity:1">ハイパー</tspan></text>
+    <circle
+       style="fill:none;fill-opacity:1;stroke:#2d2d2d;stroke-width:24.3223;stroke-dasharray:none;stroke-opacity:1"
+       id="path3"
+       cx="265.76288"
+       cy="248.10561"
+       r="151.50659" />
+  </g>
+</svg>

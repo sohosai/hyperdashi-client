@@ -125,26 +125,27 @@ export function LoanForm() {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
         <Button
           as={Link}
           to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
+          size="sm"
         >
           備品一覧に戻る
         </Button>
-        <h1 className="text-3xl font-bold">新規貸出登録</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">新規貸出登録</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">貸出情報</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">貸出情報</h2>
           </CardHeader>
           <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2 md:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2 sm:col-span-2">
                 <label className="text-sm font-medium text-foreground">
                   貸出備品 <span className="text-danger">*</span>
                 </label>
@@ -213,7 +214,7 @@ export function LoanForm() {
                 {...register('organization')}
                 label="所属"
                 placeholder="例: 情報工学科"
-                className="md:col-span-2"
+                className="sm:col-span-2"
               />
             </div>
 
@@ -230,7 +231,7 @@ export function LoanForm() {
 
         <Card className="mt-6">
           <CardHeader>
-            <h2 className="text-xl font-semibold">注意事項</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">注意事項</h2>
           </CardHeader>
           <CardBody>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-600">
@@ -252,12 +253,14 @@ export function LoanForm() {
           </Card>
         )}
 
-        <div className="flex justify-end gap-4 mt-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-4 mt-6">
           <Button
             as={Link}
             to="/items"
             variant="flat"
             isDisabled={createLoanMutation.isPending}
+            size="sm"
+            className="text-xs sm:text-sm order-2 sm:order-1"
           >
             キャンセル
           </Button>
@@ -266,6 +269,8 @@ export function LoanForm() {
             color="primary"
             startContent={<Save size={16} />}
             isLoading={createLoanMutation.isPending}
+            size="sm"
+            className="text-xs sm:text-sm order-1 sm:order-2"
           >
             登録
           </Button>

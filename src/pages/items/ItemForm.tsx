@@ -16,12 +16,13 @@ import {
 } from '@heroui/react'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Item } from '@/types'
-import { useItem, useCreateItem, useUpdateItem, useItemSuggestions } from '@/hooks'
+import { useItem, useCreateItem, useUpdateItem, useItemSuggestions, useContainers } from '@/hooks'
 import { ArrayInput } from '@/components/ui/ArrayInput'
 import { CableColorInput } from '@/components/ui/CableColorInput'
 import { ImageUpload } from '@/components/ui/ImageUpload'
+import { SingleLocationInput } from '@/components/ui/SingleLocationInput'
 
-type ItemFormData = Omit<Item, 'id' | 'created_at' | 'updated_at'>
+type ItemFormData = Omit<Item, 'id' | 'created_at' | 'updated_at' | 'storage_locations'> & { storage_location?: string }
 
 export function ItemForm() {
   const { id } = useParams()
@@ -34,7 +35,10 @@ export function ItemForm() {
   
   // Fetch suggestions for array fields
   const { data: connectionSuggestions = [] } = useItemSuggestions('connection_names')
-  const { data: locationSuggestions = [] } = useItemSuggestions('storage_locations')
+  const { data: locationSuggestions = [] } = useItemSuggestions('storage_location')
+  
+  // Fetch containers for container selection
+  const { containers = [] } = useContainers()
   
   // Debug logs (development only)
   if (import.meta.env.VITE_DEV_MODE === 'true') {
@@ -74,7 +78,9 @@ export function ItemForm() {
       is_depreciation_target: false,
       connection_names: [],
       cable_color_pattern: [],
-      storage_locations: [],
+      storage_location: '',
+      container_id: '',
+      storage_type: 'location',
       qr_code_type: 'none',
       is_disposed: false,
       image_url: '',
@@ -108,10 +114,12 @@ export function ItemForm() {
       setValue('is_depreciation_target', !!item.is_depreciation_target)
       setValue('connection_names', item.connection_names || [])
       setValue('cable_color_pattern', item.cable_color_pattern || [])
-      setValue('storage_locations', item.storage_locations || [])
+      setValue('storage_location', item.storage_location || '')
       setValue('qr_code_type', item.qr_code_type || 'none')
       setValue('is_disposed', !!item.is_disposed)
       setValue('image_url', item.image_url || '')
+      setValue('container_id', item.container_id || '')
+      setValue('storage_type', item.storage_type || 'location')
       
       if (import.meta.env.VITE_DEV_MODE === 'true') {
         console.log('Form values set individually')
@@ -131,6 +139,11 @@ export function ItemForm() {
       
       if (!data.label_id?.trim()) {
         setSubmitError('ラベルIDは必須です。')
+        return
+      }
+      
+      if (data.storage_type === 'container' && !data.container_id?.trim()) {
+        setSubmitError('コンテナで保管する場合、コンテナの選択は必須です。')
         return
       }
       
@@ -154,9 +167,12 @@ export function ItemForm() {
         // Array fields - ensure they are arrays
         connection_names: Array.isArray(data.connection_names) ? data.connection_names.filter(Boolean) : [],
         cable_color_pattern: Array.isArray(data.cable_color_pattern) ? data.cable_color_pattern.filter(Boolean) : [],
-        storage_locations: Array.isArray(data.storage_locations) ? data.storage_locations.filter(Boolean) : [],
+        storage_location: data.storage_type === 'location' ? data.storage_location?.trim() || undefined : undefined,
         // Image URL - only include if not empty
         ...(data.image_url?.trim() && { image_url: data.image_url.trim() }),
+        // Storage type and container ID
+        storage_type: data.storage_type || 'location',
+        container_id: data.storage_type === 'container' ? data.container_id?.trim() || undefined : undefined,
       }
       
       // Debug logging
@@ -268,7 +284,7 @@ export function ItemForm() {
         >
           一覧に戻る
         </Button>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-2xl sm:text-3xl font-bold">
           {isEdit ? '備品編集' : '備品登録'}
         </h1>
       </div>
@@ -276,10 +292,10 @@ export function ItemForm() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">基本情報</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">基本情報</h2>
           </CardHeader>
           <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 {...register('name', { required: '備品名は必須です' })}
                 label="備品名"
@@ -336,46 +352,109 @@ export function ItemForm() {
                 endContent={<span className="text-default-400 text-sm">年</span>}
                 value={formValues.durability_years?.toString() || ''}
               />
+              <Select
+                label="QRコードタイプ"
+                placeholder="選択してください"
+                selectionMode="single"
+                selectedKeys={formValues.qr_code_type ? new Set([formValues.qr_code_type]) : new Set()}
+                onSelectionChange={(keys) => {
+                  const selectedKeys = Array.from(keys)
+                  const value = selectedKeys[0] as 'qr' | 'barcode' | 'none'
+                  setValue('qr_code_type', value)
+                }}
+              >
+                <SelectItem key="none">なし</SelectItem>
+                <SelectItem key="qr">QRコード</SelectItem>
+                <SelectItem key="barcode">バーコード</SelectItem>
+              </Select>
               <Controller
-                name="qr_code_type"
+                name="storage_location"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    {...field}
-                    label="QRコードタイプ"
-                    placeholder="選択してください"
-                    selectedKeys={formValues.qr_code_type ? [formValues.qr_code_type] : []}
-                    onSelectionChange={(keys) => {
-                      const value = Array.from(keys)[0] as 'qr' | 'barcode' | 'none'
-                      field.onChange(value)
-                      setValue('qr_code_type', value)
-                    }}
-                  >
-                    <SelectItem key="none">なし</SelectItem>
-                    <SelectItem key="qr">QRコード</SelectItem>
-                    <SelectItem key="barcode">バーコード</SelectItem>
-                  </Select>
+                  <SingleLocationInput
+                    label={formValues.storage_type === 'container' ? "保管場所（自動設定）" : "保管場所"}
+                    placeholder={formValues.storage_type === 'container' ? "コンテナ選択時に自動設定されます" : "例: A棟201教室、機材庫"}
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    suggestions={locationSuggestions}
+                    isReadOnly={formValues.storage_type === 'container'}
+                    description={formValues.storage_type === 'container' ? "選択されたコンテナの場所が自動的に設定されます" : undefined}
+                  />
                 )}
               />
-              <div className="md:col-span-2">
-                <Controller
-                  name="storage_locations"
-                  control={control}
-                  render={({ field }) => (
-                    <ArrayInput
-                      label="保管場所"
-                      placeholder="例: A棟201教室、機材庫"
-                      values={formValues.storage_locations || []}
-                      onChange={(values) => {
-                        field.onChange(values)
-                        setValue('storage_locations', values)
-                      }}
-                      maxItems={5}
-                      suggestions={locationSuggestions}
-                    />
-                  )}
-                />
+              
+              {/* Storage Type Toggle */}
+              <div className="sm:col-span-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">保管方法</label>
+                  <Switch
+                    isSelected={formValues.storage_type === 'container'}
+                    onValueChange={(isSelected) => {
+                      const value = isSelected ? 'container' : 'location'
+                      setValue('storage_type', value)
+                      // Reset container_id when switching to location storage
+                      if (value === 'location') {
+                        setValue('container_id', '')
+                        // Clear auto-filled location when switching back to location storage
+                        setValue('storage_location', '')
+                      }
+                    }}
+                    color="primary"
+                    size="sm"
+                  >
+                    <span className="text-sm">
+                      {formValues.storage_type === 'container' ? 'コンテナに入っている' : '場所で保管'}
+                    </span>
+                  </Switch>
+                </div>
               </div>
+              
+              {/* Container Selection - only show when storage_type is 'container' */}
+              {formValues.storage_type === 'container' && (
+                <div className="sm:col-span-2">
+                  <Select
+                    label="コンテナ"
+                    placeholder="コンテナを選択"
+                    selectionMode="single"
+                    selectedKeys={formValues.container_id ? new Set([formValues.container_id]) : new Set()}
+                    onSelectionChange={(keys) => {
+                      const selectedKeys = Array.from(keys)
+                      const value = selectedKeys[0] as string || ''
+                      
+                      if (import.meta.env.VITE_DEV_MODE === 'true') {
+                        console.log('Container selection changed:', { keys, selectedKeys, value, containers })
+                      }
+                      
+                      setValue('container_id', value)
+                      
+                      // コンテナ選択時に場所を自動設定
+                      if (value) {
+                        const selectedContainer = containers.find(c => c.id === value)
+                        if (selectedContainer) {
+                          setValue('storage_location', selectedContainer.location)
+                          if (import.meta.env.VITE_DEV_MODE === 'true') {
+                            console.log('Auto-setting location:', selectedContainer.location)
+                          }
+                        }
+                      } else {
+                        // コンテナが選択解除された場合は場所もクリア
+                        setValue('storage_location', '')
+                      }
+                    }}
+                    isRequired={formValues.storage_type === 'container'}
+                  >
+                    {containers.map((container) => (
+                      <SelectItem
+                        key={container.id}
+                        textValue={`${container.name} (${container.id}) - ${container.location}`}
+                      >
+                        {container.name} ({container.id}) - {container.location}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              
               <div className="flex flex-col gap-4">
                 <Controller
                   name="is_depreciation_target"
@@ -424,7 +503,7 @@ export function ItemForm() {
 
         <Card className="mt-6">
           <CardHeader>
-            <h2 className="text-xl font-semibold">接続・配線情報</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">接続・配線情報</h2>
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 gap-6">
@@ -433,7 +512,7 @@ export function ItemForm() {
                 control={control}
                 render={({ field }) => (
                   <ArrayInput
-                    label="接続名称"
+                    label="接続端子"
                     placeholder="例: HDMI、USB-C、電源"
                     values={formValues.connection_names || []}
                     onChange={(values) => {
@@ -458,6 +537,8 @@ export function ItemForm() {
                       setValue('cable_color_pattern', values)
                     }}
                     maxItems={10}
+                    connectionNames={formValues.connection_names || []}
+                    currentItemId={itemId}
                   />
                 )}
               />
@@ -467,7 +548,7 @@ export function ItemForm() {
 
         <Card className="mt-6">
           <CardHeader>
-            <h2 className="text-xl font-semibold">画像</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">画像</h2>
           </CardHeader>
           <CardBody>
             <Controller
@@ -503,12 +584,14 @@ export function ItemForm() {
           </Card>
         )}
 
-        <div className="flex justify-end gap-4 mt-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-4 mt-6">
           <Button
             as={Link}
             to="/items"
             variant="flat"
             isDisabled={createItemMutation.isPending || updateItemMutation.isPending}
+            size="sm"
+            className="text-xs sm:text-sm order-2 sm:order-1"
           >
             キャンセル
           </Button>
@@ -517,6 +600,8 @@ export function ItemForm() {
             color="primary"
             startContent={<Save size={16} />}
             isLoading={createItemMutation.isPending || updateItemMutation.isPending}
+            size="sm"
+            className="text-xs sm:text-sm order-1 sm:order-2"
           >
             {isEdit ? '更新' : '登録'}
           </Button>

@@ -4,12 +4,10 @@ import {
   NavbarBrand, 
   NavbarContent, 
   NavbarItem,
-  Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Avatar
+  NavbarMenuToggle,
+  NavbarMenu,
+  NavbarMenuItem,
+  Button
 } from '@heroui/react'
 import { useState } from 'react'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
@@ -22,6 +20,15 @@ export function Layout() {
     return location.pathname.startsWith(path)
   }
 
+  const menuItems = [
+    { href: '/', label: 'ダッシュボード', isActive: location.pathname === '/' },
+    { href: '/items', label: '備品管理', isActive: isActive('/items') },
+    { href: '/containers', label: 'コンテナ管理', isActive: isActive('/containers') },
+    { href: '/loans', label: '貸出管理', isActive: isActive('/loans') },
+    { href: '/cable-colors', label: 'ケーブル色管理', isActive: isActive('/cable-colors') },
+    { href: '/labels', label: 'ラベル生成', isActive: isActive('/labels') },
+  ]
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar 
@@ -31,74 +38,81 @@ export function Layout() {
         onMenuOpenChange={setIsMenuOpen}
       >
         <NavbarContent>
+          <NavbarMenuToggle
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            className="sm:hidden"
+          />
           <NavbarBrand>
-            <Link to="/" className="font-bold text-xl text-primary">
-              HyperDashi
+            <Link to="/" className="flex items-center gap-2">
+              <img 
+                src="/hyperdashi.svg" 
+                alt="HyperDashi" 
+                className="h-8 w-8" 
+              />
+              <span className="font-bold text-lg sm:text-xl text-primary">HyperDashi</span>
             </Link>
           </NavbarBrand>
         </NavbarContent>
 
         <NavbarContent className="hidden sm:flex gap-4" justify="center">
-          <NavbarItem isActive={location.pathname === '/'}>
-            <Link to="/" className={location.pathname === '/' ? 'text-primary' : ''}>
-              ダッシュボード
-            </Link>
-          </NavbarItem>
-          <NavbarItem isActive={isActive('/items')}>
-            <Link to="/items" className={isActive('/items') ? 'text-primary' : ''}>
-              備品管理
-            </Link>
-          </NavbarItem>
-          <NavbarItem isActive={isActive('/loans')}>
-            <Link to="/loans" className={isActive('/loans') ? 'text-primary' : ''}>
-              貸出管理
-            </Link>
-          </NavbarItem>
-          <NavbarItem isActive={isActive('/cable-colors')}>
-            <Link to="/cable-colors" className={isActive('/cable-colors') ? 'text-primary' : ''}>
-              ケーブル色管理
-            </Link>
-          </NavbarItem>
+          {menuItems.map((item) => (
+            <NavbarItem key={item.href} isActive={item.isActive}>
+              <Link 
+                to={item.href} 
+                className={item.isActive ? 'text-primary' : ''}
+              >
+                {item.label}
+              </Link>
+            </NavbarItem>
+          ))}
         </NavbarContent>
 
         <NavbarContent justify="end">
-          <NavbarItem>
+          <NavbarItem className="hidden sm:flex">
             <ConnectionStatus />
           </NavbarItem>
-          <NavbarItem>
-            <Button as={Link} color="primary" to="/items/new" variant="flat">
+          <NavbarItem className="hidden sm:flex">
+            <Button as={Link} color="primary" to="/items/new" variant="flat" size="sm">
               備品追加
             </Button>
           </NavbarItem>
-          <NavbarItem>
-            <Dropdown placement="bottom-end">
-              <DropdownTrigger>
-                <Avatar
-                  isBordered
-                  as="button"
-                  className="transition-transform"
-                  color="primary"
-                  name="管理者"
-                  size="sm"
-                />
-              </DropdownTrigger>
-              <DropdownMenu aria-label="User Actions" variant="flat">
-                <DropdownItem key="profile" className="h-14 gap-2">
-                  <p className="font-semibold">ログイン中</p>
-                  <p className="text-sm">admin@example.com</p>
-                </DropdownItem>
-                <DropdownItem key="settings">設定</DropdownItem>
-                <DropdownItem key="help_and_feedback">ヘルプ＆フィードバック</DropdownItem>
-                <DropdownItem key="logout" color="danger">
-                  ログアウト
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </NavbarItem>
         </NavbarContent>
+
+        <NavbarMenu>
+          {menuItems.map((item) => (
+            <NavbarMenuItem key={item.href}>
+              <Link
+                to={item.href}
+                className={`w-full text-lg ${item.isActive ? 'text-primary font-semibold' : 'text-foreground'}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {item.label}
+              </Link>
+            </NavbarMenuItem>
+          ))}
+          <NavbarMenuItem>
+            <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-divider">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-foreground-500">接続状態:</span>
+                <ConnectionStatus />
+              </div>
+              <Button 
+                as={Link} 
+                color="primary" 
+                to="/items/new" 
+                variant="flat" 
+                size="sm"
+                className="w-full"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                備品追加
+              </Button>
+            </div>
+          </NavbarMenuItem>
+        </NavbarMenu>
       </Navbar>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
         <Outlet />
       </main>
     </div>

@@ -11,19 +11,73 @@ export function CableVisualization({
   size = 'md', 
   showLabels = false 
 }: CableVisualizationProps) {
-  const { data: cableColorsData } = useCableColors()
+  const { data: cableColorsData, isLoading, error } = useCableColors()
   const cableColors = cableColorsData?.data || []
+
+  // Fallback colors when data is not available
+  const fallbackColors: Record<string, string> = {
+    '赤': '#FF0000',
+    '青': '#0000FF',
+    '緑': '#008000',
+    '黄': '#FFFF00',
+    '白': '#FFFFFF',
+    '黒': '#000000',
+    'オレンジ': '#FFA500',
+    '紫': '#800080',
+    '茶': '#A52A2A',
+    'ピンク': '#FFC0CB',
+    'グレー': '#808080',
+    '水色': '#87CEEB'
+  }
 
   // Get color hex code by name
   const getColorHex = (colorName: string) => {
+    // First try to find in loaded cable colors data
     const color = cableColors.find(c => c.name === colorName)
-    return color?.hex_code || '#000000'
+    if (color?.hex_code) {
+      return color.hex_code
+    }
+    
+    // Fallback to predefined colors
+    const fallbackColor = fallbackColors[colorName]
+    if (fallbackColor) {
+      return fallbackColor
+    }
+    
+    // Last resort: generate a hash-based color from the name
+    let hash = 0
+    for (let i = 0; i < colorName.length; i++) {
+      hash = colorName.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const hue = Math.abs(hash) % 360
+    return `hsl(${hue}, 70%, 50%)`
+  }
+
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('CableVisualization Debug:', {
+      colorNames,
+      cableColorsData,
+      isLoading,
+      error,
+      cableColors: cableColors.length,
+      sampleColors: colorNames.slice(0, 3).map(name => ({ name, hex: getColorHex(name) }))
+    })
   }
 
   if (!colorNames.length) {
     return (
       <div className="text-xs text-gray-500">
         ケーブル色パターンなし
+      </div>
+    )
+  }
+
+  // Show loading state if data is still loading
+  if (isLoading) {
+    return (
+      <div className="text-xs text-gray-500">
+        ケーブル色データを読み込み中...
       </div>
     )
   }
@@ -35,21 +89,24 @@ export function CableVisualization({
       width: 'w-3',
       gap: 'gap-0.5',
       text: 'text-xs',
-      connector: 'w-2 h-0.5'
+      connectorl: 'w-2 h-1.5',
+      connectorr: 'w-2 h-0.5'
     },
     md: {
       height: 'h-3',
       width: 'w-4',
       gap: 'gap-1',
       text: 'text-xs',
-      connector: 'w-3 h-0.5'
+      connectorl: 'w-3 h-1.5',
+      connectorr: 'w-3 h-0.5'
     },
     lg: {
       height: 'h-4',
       width: 'w-6',
       gap: 'gap-1',
       text: 'text-sm',
-      connector: 'w-4 h-0.5'
+      connectorl: 'w-4 h-1.5',
+      connectorr: 'w-4 h-0.5'
     }
   }
 
@@ -60,7 +117,7 @@ export function CableVisualization({
       {/* Cable visualization */}
       <div className={`flex items-center ${config.gap}`}>
         {/* Left connector (端子) */}
-        <div className={`${config.connector} bg-gray-400 rounded-sm`} />
+        <div className={`${config.connectorl} bg-gray-400 rounded-sm`} />
         
         {/* Cable segments */}
         {colorNames.map((colorName, index) => (
@@ -77,7 +134,7 @@ export function CableVisualization({
         ))}
         
         {/* Right connector (端子) */}
-        <div className={`${config.connector} bg-gray-400 rounded-sm`} />
+        <div className={`${config.connectorr} bg-gray-400 rounded-sm`} />
       </div>
 
       {/* Labels (optional) */}

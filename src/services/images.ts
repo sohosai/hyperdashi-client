@@ -1,9 +1,9 @@
 import { api } from './api'
 
 export const imagesService = {
-  async upload(file: File): Promise<{ url: string; filename: string }> {
+  async upload(file: File): Promise<{ url: string; filename: string; size: number }> {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('image', file)  // API仕様に合わせてフィールド名を'image'に変更
     
     const response = await api.post('/images/upload', formData, {
       headers: {

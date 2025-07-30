@@ -7,6 +7,8 @@ import { ItemForm } from '@/pages/items/ItemForm'
 import { LoanForm } from '@/pages/loans/LoanForm'
 import { LoansList } from '@/pages/loans/LoansList'
 import { CableColorsList } from '@/pages/cable-colors/CableColorsList'
+import { LabelGenerator } from '@/pages/labels/LabelGenerator'
+import { ContainersList } from '@/pages/containers/ContainersList'
 
 export function AppRoutes() {
   return (
@@ -24,6 +26,8 @@ export function AppRoutes() {
           <Route path="new" element={<LoanForm />} />
         </Route>
         <Route path="cable-colors" element={<CableColorsList />} />
+        <Route path="labels" element={<LabelGenerator />} />
+        <Route path="containers" element={<ContainersList />} />
       </Route>
     </Routes>
   )

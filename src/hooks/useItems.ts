@@ -7,6 +7,8 @@ export function useItems(params?: {
   per_page?: number
   search?: string
   status?: 'available' | 'on_loan' | 'disposed'
+  container_id?: string
+  storage_type?: string
 }) {
   return useQuery({
     queryKey: ['items', params],
@@ -93,7 +95,7 @@ export function useUndisposeItem() {
   })
 }
 
-export function useItemSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_locations') {
+export function useItemSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_location') {
   return useQuery({
     queryKey: ['items', 'suggestions', field],
     queryFn: () => itemsService.getSuggestions(field),

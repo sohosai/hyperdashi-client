@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button, Card, CardBody, Image, Progress } from '@heroui/react'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import { imagesService } from '@/services/images'
 
 interface ImageUploadProps {
   currentImageUrl?: string
@@ -17,6 +18,7 @@ export function ImageUpload({
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const currentBlobUrlRef = useRef<string | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -38,23 +40,42 @@ export function ImageUpload({
         })
       }, 100)
 
-      // TODO: Implement actual image upload to API
-      // const formData = new FormData()
-      // formData.append('file', file)
-      // const response = await imagesService.upload(file)
-      
-      // For now, create a local URL for preview
+      // Create a local URL for immediate preview
       const localUrl = URL.createObjectURL(file)
       
-      // Complete progress
-      setTimeout(() => {
+      // Clean up previous blob URL if exists
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current)
+      }
+      currentBlobUrlRef.current = localUrl
+      
+      // Show preview immediately
+      onImageChange(localUrl)
+      
+      try {
+        // Upload to API
+        const response = await imagesService.upload(file)
+        
+        // Complete progress
         setUploadProgress(100)
+        
+        // Replace blob URL with server URL
         setTimeout(() => {
-          onImageChange(localUrl)
+          URL.revokeObjectURL(localUrl)
+          currentBlobUrlRef.current = null
+          onImageChange(response.url)
           setIsUploading(false)
           setUploadProgress(0)
         }, 500)
-      }, 1000)
+        
+      } catch (uploadError) {
+        console.error('Upload failed:', uploadError)
+        // Keep the blob URL for preview, but show error
+        setError('アップロードに失敗しました。プレビューのみ表示されています。')
+        setUploadProgress(100)
+        setIsUploading(false)
+        throw uploadError
+      }
 
     } catch (error) {
       setError('画像のアップロードに失敗しました')
@@ -83,9 +104,31 @@ export function ImageUpload({
   })
 
   const removeImage = () => {
+    // Clean up blob URL if exists
+    if (currentBlobUrlRef.current && currentImageUrl === currentBlobUrlRef.current) {
+      URL.revokeObjectURL(currentBlobUrlRef.current)
+      currentBlobUrlRef.current = null
+    }
     onImageChange(null)
     setError(null)
   }
+
+  // Cleanup blob URLs on unmount or when currentImageUrl changes
+  useEffect(() => {
+    return () => {
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // If currentImageUrl changes and it's not our current blob URL, clean up the old blob URL
+    if (currentBlobUrlRef.current && currentImageUrl !== currentBlobUrlRef.current) {
+      URL.revokeObjectURL(currentBlobUrlRef.current)
+      currentBlobUrlRef.current = null
+    }
+  }, [currentImageUrl])
 
   return (
     <div className="space-y-4">

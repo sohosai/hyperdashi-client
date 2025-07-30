@@ -1,8 +1,10 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Button, Card, CardBody, CardHeader, Chip, Image, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react'
-import { useItem, useDeleteItem } from '@/hooks'
+import { Button, Card, CardBody, CardHeader, Chip, Image, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Tabs, Tab } from '@heroui/react'
+import { ArrowLeft, Edit, Trash2, QrCode, BarChart3 } from 'lucide-react'
+import { useItem, useDeleteItem, useContainer, useDisposeItem, useUndisposeItem } from '@/hooks'
 import { CableVisualization } from '@/components/ui/CableVisualization'
+import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay'
+import { BarcodeDisplay } from '@/components/ui/BarcodeDisplay'
 
 export function ItemDetail() {
   const { id } = useParams()
@@ -11,7 +13,12 @@ export function ItemDetail() {
   
   const { data: item, isLoading, error } = useItem(itemId)
   const deleteItemMutation = useDeleteItem()
+  const disposeItemMutation = useDisposeItem()
+  const undisposeItemMutation = useUndisposeItem()
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
+  
+  // Fetch container information if item is stored in a container
+  const { container } = useContainer(item?.storage_type === 'container' ? item.container_id : null)
 
   if (isLoading) {
     return (
@@ -67,30 +74,60 @@ export function ItemDetail() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <Button
           as={Link}
           to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
+          size="sm"
         >
           一覧に戻る
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             as={Link}
             to={`/items/${id}/edit`}
             color="primary"
             variant="flat"
             startContent={<Edit size={16} />}
+            size="sm"
+            className="text-xs sm:text-sm"
           >
             編集
           </Button>
+          {!item.is_disposed ? (
+            <Button
+              color="warning"
+              variant="flat"
+              startContent={<Trash2 size={16} />}
+              onPress={() => disposeItemMutation.mutate(itemId)}
+              isLoading={disposeItemMutation.isPending}
+              size="sm"
+              className="text-xs sm:text-sm"
+            >
+              廃棄
+            </Button>
+          ) : (
+            <Button
+              color="success"
+              variant="flat"
+              startContent={<ArrowLeft size={16} />}
+              onPress={() => undisposeItemMutation.mutate(itemId)}
+              isLoading={undisposeItemMutation.isPending}
+              size="sm"
+              className="text-xs sm:text-sm"
+            >
+              廃棄解除
+            </Button>
+          )}
           <Button
             color="danger"
             variant="flat"
             startContent={<Trash2 size={16} />}
             onPress={onOpen}
+            size="sm"
+            className="text-xs sm:text-sm"
           >
             削除
           </Button>
@@ -101,10 +138,10 @@ export function ItemDetail() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <h1 className="text-2xl font-bold">{item.name}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">{item.name}</h1>
             </CardHeader>
             <CardBody>
-              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-gray-600">ラベルID</dt>
                   <dd className="font-medium">{item.label_id}</dd>
@@ -150,18 +187,38 @@ export function ItemDetail() {
                     )}
                   </dd>
                 </div>
-                {item.storage_locations?.length ? (
-                  <div className="md:col-span-2">
-                    <dt className="text-sm text-gray-600">保管場所</dt>
-                    <dd className="flex flex-wrap gap-2 mt-1">
-                      {item.storage_locations.map((location, index) => (
-                        <Chip key={index} variant="flat" color="success" size="sm">
-                          {location}
+{/* Storage Information */}
+                <div className="sm:col-span-2">
+                  <dt className="text-sm text-gray-600">保管情報</dt>
+                  <dd className="flex flex-wrap gap-2 mt-1">
+                    {item.storage_type === 'container' ? (
+                      container ? (
+                        <>
+                          <Chip variant="flat" color="primary" size="sm">
+                            コンテナ: {container.name} ({container.id})
+                          </Chip>
+                          <Chip variant="flat" color="success" size="sm">
+                            場所: {container.location}
+                          </Chip>
+                        </>
+                      ) : (
+                        <Chip variant="flat" color="warning" size="sm">
+                          コンテナ情報を読み込み中...
                         </Chip>
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
+                      )
+                    ) : (
+                      item.storage_location ? (
+                        <Chip variant="flat" color="success" size="sm">
+                          {item.storage_location}
+                        </Chip>
+                      ) : (
+                        <Chip variant="flat" color="default" size="sm">
+                          保管場所未設定
+                        </Chip>
+                      )
+                    )}
+                  </dd>
+                </div>
               </dl>
 
               {item.remarks && (
@@ -173,10 +230,10 @@ export function ItemDetail() {
             </CardBody>
           </Card>
 
-          {(item.connection_names?.length || item.cable_color_pattern?.length || item.storage_locations?.length) ? (
+          {(item.connection_names?.length || item.cable_color_pattern?.length || item.storage_location) ? (
             <Card>
               <CardHeader>
-                <h2 className="text-xl font-semibold">接続・配線情報</h2>
+                <h2 className="text-lg sm:text-xl font-semibold">接続・配線情報</h2>
               </CardHeader>
               <CardBody>
                 <dl className="space-y-4">
@@ -229,6 +286,36 @@ export function ItemDetail() {
                   alt={item.name}
                   className="w-full h-auto rounded-lg"
                 />
+              </CardBody>
+            </Card>
+          )}
+
+          {/* QR/バーコード表示 */}
+          {item.qr_code_type && item.qr_code_type !== 'none' && (
+            <Card>
+              <CardHeader>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  {item.qr_code_type === 'qr' ? <QrCode size={20} /> : <BarChart3 size={20} />}
+                  {item.qr_code_type === 'qr' ? 'QRコード' : 'バーコード'}
+                </h2>
+              </CardHeader>
+              <CardBody className="p-4">
+                <Tabs aria-label="コード表示タイプ">
+                  <Tab key="qr" title="QRコード">
+                    <QRCodeDisplay 
+                      value={item.label_id}
+                      size={200}
+                      title={`${item.name} (${item.label_id})`}
+                    />
+                  </Tab>
+                  <Tab key="barcode" title="バーコード">
+                    <BarcodeDisplay 
+                      value={item.label_id}
+                      format="CODE128"
+                      title={`${item.name} (${item.label_id})`}
+                    />
+                  </Tab>
+                </Tabs>
               </CardBody>
             </Card>
           )}

@@ -7,8 +7,28 @@ export const itemsService = {
     per_page?: number
     search?: string
     status?: 'available' | 'on_loan' | 'disposed'
+    container_id?: string
+    storage_type?: string
   }): Promise<PaginatedResponse<Item>> {
-    const response = await api.get('/items', { params })
+    // Transform status parameter to backend field names
+    const apiParams: any = { ...params }
+    if (params?.status) {
+      delete apiParams.status
+      switch (params.status) {
+        case 'available':
+          apiParams.is_on_loan = false
+          apiParams.is_disposed = false
+          break
+        case 'on_loan':
+          apiParams.is_on_loan = true
+          break
+        case 'disposed':
+          apiParams.is_disposed = true
+          break
+      }
+    }
+    
+    const response = await api.get('/items', { params: apiParams })
     const data = response.data
     
     // Transform API response to match our PaginatedResponse interface
@@ -62,10 +82,17 @@ export const itemsService = {
     return response.data
   },
 
-  async getSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_locations'): Promise<string[]> {
+  async getByLabelId(labelId: string): Promise<Item> {
+    const response = await api.get(`/items/by-label/${labelId}`)
+    return response.data
+  },
+
+  async getSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_location'): Promise<string[]> {
     try {
       // Try to get suggestions from a dedicated endpoint if available
-      const response = await api.get(`/items/suggestions/${field}`)
+      // Note: backend uses plural for storage_locations endpoint
+      const endpoint = field === 'storage_location' ? 'storage_locations' : field
+      const response = await api.get(`/items/suggestions/${endpoint}`)
       return response.data.suggestions || []
     } catch (error) {
       // If endpoint doesn't exist, extract from all items
@@ -74,7 +101,11 @@ export const itemsService = {
       
       allItems.data.forEach(item => {
         const fieldValue = item[field]
-        if (Array.isArray(fieldValue)) {
+        if (field === 'storage_location' && typeof fieldValue === 'string' && fieldValue) {
+          // storage_location is a single string
+          suggestions.add(fieldValue.trim())
+        } else if (Array.isArray(fieldValue)) {
+          // connection_names and cable_color_pattern are arrays
           fieldValue.forEach(value => {
             if (value && typeof value === 'string') {
               suggestions.add(value.trim())

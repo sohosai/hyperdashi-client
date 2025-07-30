@@ -152,6 +152,7 @@ export function LoansList() {
                 startContent={<RotateCcw size={16} />}
                 onPress={() => handleReturnItem(loan.id)}
                 isLoading={returnItemMutation.isPending}
+                className="text-xs sm:text-sm"
               >
                 返却
               </Button>
@@ -190,21 +191,23 @@ export function LoansList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">貸出管理</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">貸出管理</h1>
         <Button
           as={Link}
           to="/items"
           color="primary"
           startContent={<Plus size={20} />}
+          size="sm"
+          className="text-xs sm:text-sm"
         >
-          備品から貸出
+          <span className="hidden sm:inline">備品から</span>貸出
         </Button>
       </div>
 
       <Card className="mb-6">
         <CardBody>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <Input
               isClearable
               placeholder="備品名、借用者名、学籍番号で検索..."
@@ -213,14 +216,20 @@ export function LoansList() {
               onClear={() => setSearchTerm('')}
               onValueChange={setSearchTerm}
               className="flex-1"
+              size="sm"
             />
             <Dropdown>
               <DropdownTrigger>
                 <Button
                   variant="flat"
                   startContent={<Filter size={16} />}
+                  size="sm"
+                  className="text-xs sm:text-sm"
                 >
-                  {filterStatus === 'all' ? 'すべて' : filterStatus === 'active' ? '貸出中' : '返却済み'}
+                  <span className="hidden sm:inline">
+                    {filterStatus === 'all' ? 'すべて' : filterStatus === 'active' ? '貸出中' : '返却済み'}
+                  </span>
+                  <span className="sm:hidden">フィルタ</span>
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
@@ -243,7 +252,7 @@ export function LoansList() {
       </Card>
 
       <Card>
-        <CardBody className="p-0">
+        <CardBody className="p-0 overflow-x-auto">
           <Table
             aria-label="貸出管理"
             sortDescriptor={sortDescriptor}
@@ -270,6 +279,7 @@ export function LoansList() {
                   key={column.key} 
                   align={column.key === 'actions' ? 'center' : 'start'}
                   allowsSorting={column.sortable}
+                  className="text-xs sm:text-sm"
                 >
                   {column.label}
                 </TableColumn>
@@ -284,7 +294,7 @@ export function LoansList() {
               {(loan) => (
                 <TableRow key={loan.id}>
                   {(columnKey) => (
-                    <TableCell>{renderCell(loan, columnKey)}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{renderCell(loan, columnKey)}</TableCell>
                   )}
                 </TableRow>
               )}
