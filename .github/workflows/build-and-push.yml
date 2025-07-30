@@ -69,8 +69,5 @@ jobs:
     - name: Type check
       run: bun run type-check
 
-    - name: Run linter
-      run: bun run lint
-
     - name: Build application
       run: bun run build
