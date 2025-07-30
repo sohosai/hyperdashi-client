@@ -5,8 +5,8 @@
 ## 開発
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ## 技術スタック
