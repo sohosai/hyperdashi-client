@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, CardBody, CardHeader, Tabs, Tab, Select, SelectItem } from '@heroui/react'
+import { Button, Card, CardBody, CardHeader, Select, SelectItem } from '@heroui/react'
 import { Download, Printer, QrCode, BarChart3 } from 'lucide-react'
 import { QRCodeDisplay } from './QRCodeDisplay'
 import { BarcodeDisplay } from './BarcodeDisplay'

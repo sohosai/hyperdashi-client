@@ -22,7 +22,7 @@ import { CableColorInput } from '@/components/ui/CableColorInput'
 import { ImageUpload } from '@/components/ui/ImageUpload'
 import { SingleLocationInput } from '@/components/ui/SingleLocationInput'
 
-type ItemFormData = Omit<Item, 'id' | 'created_at' | 'updated_at' | 'storage_locations'> & { storage_location?: string }
+type ItemFormData = Omit<Item, 'id' | 'created_at' | 'updated_at'>
 
 export function ItemForm() {
   const { id } = useParams()

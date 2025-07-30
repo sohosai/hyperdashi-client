@@ -125,7 +125,7 @@ export function Dashboard() {
         handleCodeDetected(decodedText)
       }
       
-      const qrCodeErrorCallback = (errorMessage: string) => {
+      const qrCodeErrorCallback = () => {
         // エラーは静かに無視してスキャンを継続
       }
       

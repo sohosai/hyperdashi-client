@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Html5QrcodeScanner, Html5QrcodeScannerConfig } from 'html5-qrcode'
+import { Html5QrcodeScanner } from 'html5-qrcode'
 import { Button, Card, CardBody } from '@heroui/react'
 import { Camera, CameraOff } from 'lucide-react'
 
@@ -13,11 +13,10 @@ interface QRScannerProps {
 export function QRScanner({ onScan, onError, isActive, onToggle }: QRScannerProps) {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const elementRef = useRef<HTMLDivElement>(null)
-  const [isScanning, setIsScanning] = useState(false)
 
   useEffect(() => {
     if (isActive && elementRef.current && !scannerRef.current) {
-      const config: Html5QrcodeScannerConfig = {
+      const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,

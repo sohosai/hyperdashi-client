@@ -80,16 +80,14 @@ export function ExpandableItemRow({ item }: ExpandableItemRowProps) {
         </Card>
 
         {/* 保管場所セクション */}
-        {item.storage_locations?.length ? (
+        {item.storage_location ? (
           <Card className="shadow-sm">
             <CardBody className="p-3">
               <h4 className="font-semibold text-sm mb-3">保管場所</h4>
               <div className="flex flex-wrap gap-1">
-                {item.storage_locations.map((location, index) => (
-                  <Chip key={index} size="sm" variant="flat" color="success">
-                    {location}
-                  </Chip>
-                ))}
+                <Chip size="sm" variant="flat" color="success">
+                  {item.storage_location}
+                </Chip>
               </div>
             </CardBody>
           </Card>

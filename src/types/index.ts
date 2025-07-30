@@ -11,6 +11,8 @@ export interface Item {
   connection_names?: string[]
   cable_color_pattern?: string[]
   storage_location?: string
+  container_id?: string
+  storage_type: string
   is_on_loan?: boolean
   qr_code_type?: 'qr' | 'barcode' | 'none'
   is_disposed?: boolean

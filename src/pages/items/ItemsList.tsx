@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Table,
@@ -84,7 +84,7 @@ export function ItemsList() {
   const returnItemMutation = useReturnItem()
   
   // 保管場所の選択肢を取得
-  const { data: storageLocationSuggestions } = useItemSuggestions('storage_locations')
+  const { data: storageLocationSuggestions } = useItemSuggestions('storage_location')
   
   // コンテナ情報を取得
   const { containers } = useContainers()
@@ -218,7 +218,7 @@ export function ItemsList() {
   }
 
   const toggleColumnVisibility = (columnKey: string) => {
-    const newVisibleColumns = new Set(visibleColumns)
+    const newVisibleColumns = new Set(visibleColumns) as Set<string>
     if (newVisibleColumns.has(columnKey)) {
       newVisibleColumns.delete(columnKey)
     } else {
@@ -290,12 +290,12 @@ export function ItemsList() {
       item.model_number || '',
       item.name || '',
       '1', // Fixed quantity as per dashi implementation
-      item.description || '',
+      item.remarks || '',
       item.storage_location || '仮で埋めている', // Default as per dashi
       '', // Usage - empty as per dashi
       '当日', // Duration - "Same day" as per dashi
       '1', // Required quantity - fixed as per dashi
-      item.notes || '', // Notes/remarks
+      item.remarks || '', // Notes/remarks
     ])
     
     return [headers, ...rows].map(row => 
@@ -774,7 +774,7 @@ export function ItemsList() {
               >
                 <SelectItem key="all">すべて</SelectItem>
                 {(storageLocationSuggestions || []).map((location: string) => (
-                  <SelectItem key={location} value={location}>
+                  <SelectItem key={location}>
                     {location}
                   </SelectItem>
                 ))}
@@ -810,7 +810,7 @@ export function ItemsList() {
               >
                 <SelectItem key="all">すべて</SelectItem>
                 {containers?.map((containerWithCount) => (
-                  <SelectItem key={containerWithCount.id} value={containerWithCount.id}>
+                  <SelectItem key={containerWithCount.id}>
                     {containerWithCount.name} ({containerWithCount.id})
                   </SelectItem>
                 )) || []}
@@ -880,7 +880,7 @@ export function ItemsList() {
                     key={column.key} 
                     align={column.key === 'actions' ? 'end' : 'start'}
                     allowsSorting={column.sortable}
-                    width={column.width}
+                    width={column.width as any}
                     className={column.key === 'actions' ? 'sticky right-0 bg-background' : ''}
                   >
                     <span className="text-xs sm:text-sm">{column.label}</span>

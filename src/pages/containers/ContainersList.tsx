@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { 
   Card, 
   CardBody, 
-  CardHeader,
   Button,
   Input,
   Select,
@@ -25,7 +24,7 @@ import {
   Checkbox,
   SortDescriptor
 } from '@heroui/react'
-import { Plus, Search, Package, Edit, Trash2, MapPin, RotateCcw } from 'lucide-react'
+import { Plus, Search, Package, Edit, Trash2, RotateCcw } from 'lucide-react'
 import { useContainers } from '../../hooks'
 import { CreateContainerRequest, UpdateContainerRequest, ContainerWithItemCount } from '../../services'
 
@@ -231,7 +230,7 @@ export function ContainersList() {
               >
                 <SelectItem key="">すべての場所</SelectItem>
                 {uniqueLocations.map(location => (
-                  <SelectItem key={location} value={location}>{location}</SelectItem>
+                  <SelectItem key={location}>{location}</SelectItem>
                 ))}
               </Select>
               
