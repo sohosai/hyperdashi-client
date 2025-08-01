@@ -6,7 +6,7 @@ export function useLoans(params?: {
   per_page?: number
   search?: string
   status?: 'active' | 'returned'
-  item_id?: number
+  item_id?: string
   student_number?: string
 }) {
   return useQuery({
@@ -48,7 +48,7 @@ export function useReturnItem() {
   })
 }
 
-export function useActiveLoan(itemId: number) {
+export function useActiveLoan(itemId: string) {
   return useQuery({
     queryKey: ['loans', 'active', itemId],
     queryFn: () => loansService.getActiveByItemId(itemId),
@@ -59,7 +59,7 @@ export function useActiveLoan(itemId: number) {
 export function useLoanHistory(params?: {
   page?: number
   per_page?: number
-  item_id?: number
+  item_id?: string
   student_number?: string
 }) {
   return useQuery({

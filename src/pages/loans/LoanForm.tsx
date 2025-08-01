@@ -14,7 +14,7 @@ import { ArrowLeft, Save } from 'lucide-react'
 import { useItem, useCreateLoan } from '@/hooks'
 
 type LoanFormData = {
-  item_id: number
+  item_id: string
   student_number: string
   student_name: string
   organization?: string
@@ -32,7 +32,7 @@ export function LoanForm() {
   const itemId = searchParams.get('item_id')
   
   // Fetch specific item data if item_id is provided
-  const { data: selectedItem } = useItem(itemId ? Number(itemId) : 0)
+  const { data: selectedItem } = useItem(itemId || '')
   
   // Create loan mutation
   const createLoanMutation = useCreateLoan()
@@ -44,7 +44,7 @@ export function LoanForm() {
     formState: { errors },
   } = useForm<LoanFormData>({
     defaultValues: {
-      item_id: itemId ? Number(itemId) : 0,
+      item_id: itemId || '',
       student_number: '',
       student_name: '',
       organization: '',
@@ -56,7 +56,7 @@ export function LoanForm() {
   // Update form when item_id is available
   useEffect(() => {
     if (itemId) {
-      setValue('item_id', Number(itemId))
+      setValue('item_id', itemId)
     }
   }, [itemId, setValue])
 
@@ -87,7 +87,7 @@ export function LoanForm() {
       
       // Clean and prepare data for API
       const loanData = {
-        item_id: Number(data.item_id),
+        item_id: data.item_id,
         student_number: data.student_number.trim(),
         student_name: data.student_name.trim(),
         organization: data.organization?.trim() || undefined,

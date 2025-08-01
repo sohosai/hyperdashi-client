@@ -28,10 +28,10 @@ export function ItemForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = !!id
-  const itemId = id ? Number(id) : undefined
+  const itemId = id || ''
 
   // Fetch item data for edit mode
-  const { data: item, isLoading: isLoadingItem, error: itemError } = useItem(itemId || 0)
+  const { data: item, isLoading: isLoadingItem, error: itemError } = useItem(itemId)
   
   // Fetch suggestions for array fields
   const { data: connectionSuggestions = [] } = useItemSuggestions('connection_names')

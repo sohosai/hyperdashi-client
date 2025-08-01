@@ -7,7 +7,7 @@ export const loansService = {
     per_page?: number
     search?: string
     status?: 'active' | 'returned'
-    item_id?: number
+    item_id?: string
     student_number?: string
   }): Promise<PaginatedResponse<Loan>> {
     const response = await api.get('/loans', { params })
@@ -38,7 +38,7 @@ export const loansService = {
     return response.data
   },
 
-  async getActiveByItemId(itemId: number): Promise<Loan | null> {
+  async getActiveByItemId(itemId: string): Promise<Loan | null> {
     const response = await api.get(`/items/${itemId}/active-loan`)
     return response.data
   },
@@ -46,7 +46,7 @@ export const loansService = {
   async getHistory(params?: {
     page?: number
     per_page?: number
-    item_id?: number
+    item_id?: string
     student_number?: string
   }): Promise<PaginatedResponse<Loan>> {
     const response = await api.get('/loans/history', { params })

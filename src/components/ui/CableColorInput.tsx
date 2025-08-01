@@ -10,7 +10,7 @@ interface CableColorInputProps {
   onChange: (values: string[]) => void
   maxItems?: number
   connectionNames?: string[] // Required for conflict detection
-  currentItemId?: number // To exclude current item from conflict check
+  currentItemId?: string // To exclude current item from conflict check
 }
 
 export function CableColorInput({ 

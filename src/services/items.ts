@@ -41,7 +41,7 @@ export const itemsService = {
     }
   },
 
-  async getById(id: number): Promise<Item> {
+  async getById(id: string): Promise<Item> {
     const response = await api.get(`/items/${id}`)
     return response.data
   },
@@ -51,16 +51,16 @@ export const itemsService = {
     return response.data
   },
 
-  async update(id: number, data: Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>>): Promise<Item> {
+  async update(id: string, data: Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>>): Promise<Item> {
     const response = await api.put(`/items/${id}`, data)
     return response.data
   },
 
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     await api.delete(`/items/${id}`)
   },
 
-  async uploadImage(id: number, file: File): Promise<{ image_url: string }> {
+  async uploadImage(id: string, file: File): Promise<{ image_url: string }> {
     const formData = new FormData()
     formData.append('image', file)
     
@@ -72,12 +72,12 @@ export const itemsService = {
     return response.data
   },
 
-  async dispose(id: number): Promise<Item> {
+  async dispose(id: string): Promise<Item> {
     const response = await api.post(`/items/${id}/dispose`)
     return response.data
   },
 
-  async undispose(id: number): Promise<Item> {
+  async undispose(id: string): Promise<Item> {
     const response = await api.post(`/items/${id}/undispose`)
     return response.data
   },

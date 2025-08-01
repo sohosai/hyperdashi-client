@@ -9,7 +9,7 @@ import { BarcodeDisplay } from '@/components/ui/BarcodeDisplay'
 export function ItemDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const itemId = id ? Number(id) : 0
+  const itemId = id || ''
   
   const { data: item, isLoading, error } = useItem(itemId)
   const deleteItemMutation = useDeleteItem()

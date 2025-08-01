@@ -240,7 +240,7 @@ export function ItemsList() {
     setPage(1)
   }
 
-  const handleReturnItem = async (itemId: number) => {
+  const handleReturnItem = async (itemId: string) => {
     try {
       // Get active loan for this item using the loans service
       const loansResponse = await fetch(`/api/v1/loans?item_id=${itemId}&status=active`)

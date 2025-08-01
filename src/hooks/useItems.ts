@@ -16,11 +16,11 @@ export function useItems(params?: {
   })
 }
 
-export function useItem(id: number) {
+export function useItem(id: string) {
   return useQuery({
     queryKey: ['items', id],
     queryFn: () => itemsService.getById(id),
-    enabled: !!id && id > 0,
+    enabled: !!id && id.length > 0,
   })
 }
 
@@ -39,7 +39,7 @@ export function useUpdateItem() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>> }) =>
       itemsService.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
@@ -63,7 +63,7 @@ export function useUploadItemImage() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ id, file }: { id: number; file: File }) =>
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
       itemsService.uploadImage(id, file),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['items', id] })

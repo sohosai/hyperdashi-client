@@ -1,5 +1,5 @@
 export interface Item {
-  id: number
+  id: string
   name: string
   label_id: string
   model_number?: string
@@ -23,7 +23,7 @@ export interface Item {
 
 export interface Loan {
   id: number
-  item_id: number
+  item_id: string
   student_number: string
   student_name: string
   organization?: string
