@@ -1,6 +1,6 @@
 import { Card, CardBody, CardHeader, Chip, Spinner, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Input } from '@heroui/react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useItems, useLoans } from '@/hooks'
+import { useItems, useLoans, useContainers } from '@/hooks'
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { QrCode } from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -23,9 +23,10 @@ export function Dashboard() {
     page: 1, 
     per_page: 1000 
   })
+  const { containers } = useContainers()
 
   const items = itemsData?.data || []
-  const loans = loansData?.data || []
+  const loans = Array.isArray(loansData?.data) ? loansData.data : []
 
   // 統計データの計算
   const stats = useMemo(() => {
@@ -50,10 +51,10 @@ export function Dashboard() {
     // 今月の新規貸出数
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
-    const thisMonthLoans = loans.filter(loan => {
+    const thisMonthLoans = Array.isArray(loans) ? loans.filter(loan => {
       const loanDate = new Date(loan.loan_date)
       return loanDate.getMonth() === currentMonth && loanDate.getFullYear() === currentYear
-    }).length
+    }).length : 0
 
     return [
       { label: '総備品数', value: totalItems.toString(), color: 'primary' },
@@ -65,12 +66,39 @@ export function Dashboard() {
 
   // 最近の貸出活動
   const recentLoans = useMemo(() => {
+    if (!Array.isArray(loans)) return []
     return loans
       .sort((a, b) => new Date(b.loan_date).getTime() - new Date(a.loan_date).getTime())
       .slice(0, 5)
   }, [loans])
 
-  // IDで備品を検索
+  // カメラ停止（Html5Qrcode用）
+  const stopCamera = useCallback(() => {
+    console.log('Html5Qrcode スキャナー停止処理開始')
+    
+    // Html5Qrcodeを停止
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.stop().then(() => {
+        console.log('Html5Qrcode スキャナー停止成功')
+        html5QrCodeRef.current?.clear()
+        html5QrCodeRef.current = null
+      }).catch((error) => {
+        console.warn('Html5Qrcode スキャナー停止エラー:', error)
+        // エラーでも強制的にクリア
+        try {
+          html5QrCodeRef.current?.clear()
+          html5QrCodeRef.current = null
+        } catch (clearError) {
+          console.warn('Html5Qrcode クリアエラー:', clearError)
+        }
+      })
+    }
+    
+    setIsScanning(false)
+    console.log('Html5Qrcode 停止処理完了')
+  }, [])
+
+  // IDで備品を検索またはコンテナでフィルタリング
   const searchItemById = useCallback((id: string) => {
     const trimmedId = id.trim()
     if (!trimmedId) {
@@ -86,10 +114,23 @@ export function Dashboard() {
       onOpenChange()
       setSearchId('')
       setSearchError('')
-    } else {
-      setSearchError('該当する備品が見つかりません')
+      return
     }
-  }, [items, navigate, onOpenChange])
+
+    // コンテナのQRコードの可能性があるので確認
+    const container = containers.find(c => c.id === trimmedId)
+    if (container) {
+      stopCamera()
+      // コンテナ内の備品一覧を表示（フィルタ付きで備品一覧ページに移動）
+      navigate(`/items?container_id=${trimmedId}&storage_type=container`)
+      onOpenChange()
+      setSearchId('')
+      setSearchError('')
+      return
+    }
+
+    setSearchError('該当する備品またはコンテナが見つかりません')
+  }, [items, containers, navigate, onOpenChange, stopCamera])
 
   // QRコード読み取り成功時のハンドラ
   const handleCodeDetected = useCallback((result: string) => {
@@ -194,32 +235,6 @@ export function Dashboard() {
       setIsScanning(false)
     }
   }
-
-  // カメラ停止（Html5Qrcode用）
-  const stopCamera = useCallback(() => {
-    console.log('Html5Qrcode スキャナー停止処理開始')
-    
-    // Html5Qrcodeを停止
-    if (html5QrCodeRef.current) {
-      html5QrCodeRef.current.stop().then(() => {
-        console.log('Html5Qrcode スキャナー停止成功')
-        html5QrCodeRef.current?.clear()
-        html5QrCodeRef.current = null
-      }).catch((error) => {
-        console.warn('Html5Qrcode スキャナー停止エラー:', error)
-        // エラーでも強制的にクリア
-        try {
-          html5QrCodeRef.current?.clear()
-          html5QrCodeRef.current = null
-        } catch (clearError) {
-          console.warn('Html5Qrcode クリアエラー:', clearError)
-        }
-      })
-    }
-    
-    setIsScanning(false)
-    console.log('Html5Qrcode 停止処理完了')
-  }, [])
 
   // モーダルが閉じられた時の処理
   const handleModalClose = useCallback(() => {
@@ -438,8 +453,9 @@ export function Dashboard() {
 
                   <div className="text-sm text-gray-600">
                     <p>• 備品のラベルIDを直接入力するか、カメラでQRコード/バーコードを読み取ってください</p>
+                    <p>• コンテナのQRコードを読み取ると、そのコンテナ内の備品一覧を表示します</p>
                     <p>• 多種類のバーコード形式に対応しています（QR, CODE128, EAN等）</p>
-                    <p>• 読み取り後、該当する備品の詳細画面に移動します</p>
+                    <p>• 読み取り後、該当する備品の詳細画面またはコンテナ内備品一覧に移動します</p>
                     {location.protocol !== 'https:' && location.hostname !== 'localhost' && (
                       <p className="text-warning mt-2">⚠️ カメラ機能を使用するにはHTTPS環境が必要です</p>
                     )}

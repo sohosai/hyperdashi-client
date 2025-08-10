@@ -229,20 +229,6 @@ export function LoanForm() {
           </CardBody>
         </Card>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <h2 className="text-lg sm:text-xl font-semibold">注意事項</h2>
-          </CardHeader>
-          <CardBody>
-            <ul className="list-disc list-inside space-y-2 text-sm text-gray-600">
-              <li>備品の貸出期限は原則として2週間です</li>
-              <li>期限を過ぎる場合は必ず連絡してください</li>
-              <li>破損・紛失した場合は速やかに報告してください</li>
-              <li>返却時は借りた時と同じ状態で返却してください</li>
-            </ul>
-          </CardBody>
-        </Card>
-
         {submitError && (
           <Card className="mt-4">
             <CardBody>

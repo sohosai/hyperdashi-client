@@ -87,6 +87,11 @@ export const itemsService = {
     return response.data
   },
 
+  async checkLabelId(labelId: string): Promise<{ exists: boolean }> {
+    const response = await api.get<{ exists: boolean }>(`/items/check/${labelId}`)
+    return response.data
+  },
+
   async getSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_location'): Promise<string[]> {
     try {
       // Try to get suggestions from a dedicated endpoint if available
@@ -117,4 +122,37 @@ export const itemsService = {
       return Array.from(suggestions).sort()
     }
   },
-}
+
+  bulkDelete: async (ids: string[]): Promise<void> => {
+    await api.delete('/items/bulk', { data: { ids } });
+  },
+
+  bulkUpdateDisposedStatus: async (
+    ids: string[],
+    is_disposed: boolean
+  ): Promise<void> => {
+    await api.put('/items/bulk/disposed', { ids, is_disposed });
+  },
+
+  bulkMoveToContainer: async (
+    ids: string[],
+    containerId: string
+  ): Promise<void> => {
+    await api.put('/items/bulk/container', { 
+      ids, 
+      container_id: containerId,
+      storage_type: 'container'
+    });
+  },
+
+  bulkUpdateStorageLocation: async (
+    ids: string[],
+    storageLocation: string
+  ): Promise<void> => {
+    await api.put('/items/bulk/location', { 
+      ids, 
+      storage_location: storageLocation,
+      storage_type: 'location'
+    });
+  },
+};

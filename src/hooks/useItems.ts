@@ -103,3 +103,50 @@ export function useItemSuggestions(field: 'connection_names' | 'cable_color_patt
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
 }
+
+export function useBulkDeleteItems() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: itemsService.bulkDelete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+    },
+  })
+}
+
+export function useBulkUpdateItemsDisposedStatus() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ ids, is_disposed }: { ids: string[]; is_disposed: boolean }) =>
+      itemsService.bulkUpdateDisposedStatus(ids, is_disposed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+    },
+  })
+}
+
+export function useBulkMoveToContainer() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ ids, containerId }: { ids: string[]; containerId: string }) =>
+      itemsService.bulkMoveToContainer(ids, containerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+    },
+  })
+}
+
+export function useBulkUpdateStorageLocation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ ids, storageLocation }: { ids: string[]; storageLocation: string }) =>
+      itemsService.bulkUpdateStorageLocation(ids, storageLocation),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+    },
+  })
+}

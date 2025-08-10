@@ -11,6 +11,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
     "@heroui/react": "^2.4.24",
     "@tanstack/react-query": "^5.62.0",
     "@tanstack/react-table": "^8.20.7",
@@ -20,6 +22,7 @@
     "framer-motion": "^11.15.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
+    "hyperdashi-client": ".",
     "jsbarcode": "^3.12.1",
     "jspdf": "^3.0.0",
     "lucide-react": "^0.525.0",

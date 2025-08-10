@@ -20,6 +20,17 @@ export interface Item {
   created_at: string
   updated_at: string
 }
+export interface Container {
+  id: string;
+  name: string;
+  location?: string;
+  remarks?: string;
+  image_url?: string;
+  is_disposed: boolean;
+  created_at: string;
+  updated_at: string;
+  item_count?: number;
+}
 
 export interface Loan {
   id: number

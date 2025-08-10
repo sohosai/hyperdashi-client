@@ -1,917 +1,803 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import React from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Button,
   Input,
   Chip,
-  Pagination,
-  Spinner,
-  Card,
-  CardBody,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-  Checkbox,
   Select,
   SelectItem,
+  Autocomplete,
+  AutocompleteItem,
   SortDescriptor,
+  Selection,
+  Spinner,
 } from '@heroui/react'
-import { Search, Plus, Eye, Edit, Settings, Trash2, RotateCcw, Users, Undo, Download } from 'lucide-react'
-import { Item } from '@/types'
-import { useItems, useDisposeItem, useUndisposeItem, useReturnItem, useItemSuggestions, useContainers } from '@/hooks'
-import { CableVisualization } from '@/components/ui/CableVisualization'
+import { Search, Plus, Trash2, RotateCcw, Eye, Edit, Users, Undo, GripVertical, Package } from 'lucide-react'
+import { Item, Container, PaginatedResponse } from '@/types'
+import {
+  useItems,
+  useUpdateItem,
+  useCreateItem,
+  useBulkDeleteItems,
+  useBulkUpdateItemsDisposedStatus,
+  useBulkMoveToContainer,
+  useBulkUpdateStorageLocation,
+  useContainers,
+  useDisposeItem,
+  useUndisposeItem,
+  useReturnItem,
+} from '@/hooks'
+import { EnhancedList, ColumnDef } from '@/components/ui/EnhancedList'
+import { EditableCell } from '@/components/ui/EditableCell'
+import { BulkActionBar } from '@/components/ui/BulkActionBar'
+import { InlineCreatorRow } from '@/components/ui/InlineCreatorRow'
+import { AdvancedFilters, FilterState } from '@/components/ui/AdvancedFilters'
+
+// dnd-kit imports
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 export function ItemsList() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [page, setPage] = useState(1)
-  
-  // Load column visibility from cookie
-  const loadColumnVisibility = () => {
-    try {
-      const saved = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('itemsListColumns='))
-        ?.split('=')[1]
-      
-      if (saved) {
-        const parsed = JSON.parse(decodeURIComponent(saved))
-        return new Set(parsed)
-      }
-    } catch (error) {
-      console.error('Failed to load column visibility:', error)
-    }
-    
-    // Check if mobile device
-    const isMobile = window.innerWidth < 768
-    
-    // Default columns - show fewer columns on mobile
-    if (isMobile) {
-      return new Set([
-        'name', 'status', 'actions'
-      ])
-    }
-    
-    return new Set([
-      'label_id', 'name', 'model_number', 'purchase_year', 'cable_colors', 'storage_location', 'container', 'status', 'actions'
-    ])
-  }
-  
-  const [visibleColumns, setVisibleColumns] = useState(loadColumnVisibility)
+  // Move sensors hook to top-level to avoid conditional hook call
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'created_at',
-    direction: 'descending',
+    column: searchParams.get('sort_by') || 'created_at',
+    direction: searchParams.get('sort_order') === 'asc' ? 'ascending' : 'descending',
   })
-  
-  // フィルタ状態
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'on_loan' | 'disposed'>('all')
-  const [qrCodeFilter, setQrCodeFilter] = useState<'all' | 'qr' | 'barcode' | 'none'>('all')
-  const [depreciationFilter, setDepreciationFilter] = useState<'all' | 'target' | 'not_target'>('all')
-  const [storageLocationFilter, setStorageLocationFilter] = useState<string>('')
-  const [containerFilter, setContainerFilter] = useState<string>('')
-  const [storageTypeFilter, setStorageTypeFilter] = useState<'all' | 'location' | 'container'>('all')
-  const [purchaseYearFrom, setPurchaseYearFrom] = useState('')
-  const [purchaseYearTo, setPurchaseYearTo] = useState('')
-  
+
+  // Advanced filters state
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const initialFilters: FilterState = {}
+    
+    const statusParam = searchParams.get('status')
+    if (statusParam && statusParam !== 'all') {
+      initialFilters.status = statusParam as 'available' | 'on_loan' | 'disposed'
+    }
+    
+    const containerParam = searchParams.get('container_id')
+    if (containerParam) {
+      initialFilters.container_id = containerParam
+    }
+    
+    return initialFilters
+  })
+
+  // Column selection
+  // All possible columns for Item
+  const allColumnDefs: ColumnDef<Item>[] = [
+      { key: 'name', label: '名称', sortable: true },
+      { key: 'label_id', label: 'ラベルID', sortable: true },
+      { key: 'model_number', label: '型番', sortable: true },
+      { key: 'storage_location', label: '保管場所' },
+      { key: 'container_id', label: 'コンテナ', sortable: true },
+      { key: 'is_disposed', label: '状態' },
+      { key: 'purchase_year', label: '購入年', sortable: true },
+      { key: 'remarks', label: '備考' },
+      { key: 'purchase_amount', label: '購入金額', sortable: true },
+      { key: 'durability_years', label: '耐用年数', sortable: true },
+      { key: 'is_depreciation_target', label: '減価償却対象' },
+      { key: 'connection_names', label: '接続名称' },
+      { key: 'cable_color_pattern', label: 'ケーブル色' },
+      { key: 'storage_type', label: '保管方法' },
+      { key: 'qr_code_type', label: 'QR/バーコード種別' },
+      { key: 'image_url', label: '画像' },
+      { key: 'created_at', label: '登録日', sortable: true },
+      { key: 'updated_at', label: '更新日', sortable: true },
+      { key: 'actions', label: '操作', align: 'end' },
+  ]
+  const columnStorageKey = 'itemsListColumns'
+  const defaultColumnKeys = allColumnDefs.map(col => col.key).filter(key => key !== 'actions')
+  // New: maintain full order and visibility separately
+  const columnOrderStorageKey = 'itemsListColumnOrder'
+  const columnVisibilityStorageKey = 'itemsListColumnVisibility'
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(columnOrderStorageKey)
+      if (saved) return JSON.parse(saved)
+    }
+    // Default order as requested
+    return [
+      'label_id', // ラベルID
+      'name',     // 名称
+      'connection_names', // 接続端子
+      'cable_color_pattern', // ケーブル色
+      'is_disposed', // 状態
+      'storage_location', // 保管場所
+      'container_id', // コンテナ
+      // Add the rest of the columns in their original order, except 'actions'
+      ...defaultColumnKeys.filter(
+        key =>
+          ![
+            'label_id',
+            'name',
+            'connection_names',
+            'cable_color_pattern',
+            'is_disposed',
+            'storage_location',
+            'container_id',
+          ].includes(key)
+      ),
+    ]
+  })
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(columnVisibilityStorageKey)
+      if (saved) return JSON.parse(saved)
+    }
+    // Use user-specified default visible columns
+    return [
+      'label_id', // ラベルID
+      'name',     // 名称
+      'connection_names', // 接続端子
+      'cable_color_pattern', // ケーブル色
+      'is_disposed', // 状態
+      'storage_location', // 保管場所
+      'container_id', // コンテナ
+    ]
+  })
+  // Sync visibleColumnKeys order with columnOrder when either changes
+  const orderedVisibleColumnKeys = useMemo(() => {
+    return columnOrder.filter(key => visibleColumnKeys.includes(key))
+  }, [columnOrder, visibleColumnKeys])
+  const [showColumnModal, setShowColumnModal] = useState(false)
+
+  // (Removed previous defaultVisibleKeys logic, now handled in useState initializer above)
+
+  // Selection state (ensure this is defined and not duplicated)
+  const [selectionKeys, setSelectionKeys] = useState<Selection>(new Set([]))
+
+  const handleToggleColumn = (key: string) => {
+    let next: string[]
+    if (visibleColumnKeys.includes(key)) {
+      next = visibleColumnKeys.filter(k => k !== key)
+    } else {
+      next = [...visibleColumnKeys, key]
+    }
+    setVisibleColumnKeys(next)
+    localStorage.setItem(columnVisibilityStorageKey, JSON.stringify(next))
+  }
+
+  // Always show actions column
+  const columns: ColumnDef<Item>[] = useMemo(() => {
+    return allColumnDefs.filter(
+      col => col.key === 'actions' || orderedVisibleColumnKeys.includes(col.key as string)
+    ).sort((a, b) => {
+      // Always keep actions at the end
+      if (a.key === 'actions') return 1
+      if (b.key === 'actions') return -1
+      return orderedVisibleColumnKeys.indexOf(a.key as string) - orderedVisibleColumnKeys.indexOf(b.key as string)
+    })
+  }, [orderedVisibleColumnKeys])
+
+  const { data: containersData } = useContainers()
+  const containers = useMemo(() => containersData?.containers || [], [containersData])
+
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page,
+      per_page: 20,
+      search: searchTerm || undefined,
+      sort_by: sortDescriptor.column as string,
+      sort_order: sortDescriptor.direction === 'ascending' ? 'asc' : 'desc',
+    }
+
+    // Add filters to query params
+    if (filters.status) {
+      params.status = filters.status
+    }
+    if (filters.container_id) {
+      params.container_id = filters.container_id
+    }
+    if (filters.storage_type) {
+      params.storage_type = filters.storage_type
+    }
+    if (filters.storage_location) {
+      params.storage_location = filters.storage_location
+    }
+
+    return params
+  }, [page, searchTerm, sortDescriptor, filters])
+
+  const { data, isLoading, error } = useItems(queryParams)
+  let items = data?.data || []
+
+  // Extract unique values for filter options
+  const uniqueValues = useMemo(() => {
+    const storageLocations = new Set<string>()
+    const connectionNames = new Set<string>()
+    const cableColors = new Set<string>()
+
+    items.forEach(item => {
+      if (item.storage_location) {
+        storageLocations.add(item.storage_location)
+      }
+      if (item.connection_names) {
+        item.connection_names.forEach(name => connectionNames.add(name))
+      }
+      if (item.cable_color_pattern) {
+        item.cable_color_pattern.forEach(color => cableColors.add(color))
+      }
+    })
+
+    return {
+      storageLocations: Array.from(storageLocations).sort(),
+      connectionNames: Array.from(connectionNames).sort(),
+      cableColors: Array.from(cableColors).sort(),
+    }
+  }, [items])
+
+  const updateItemMutation = useUpdateItem()
+  const createItemMutation = useCreateItem()
+  const bulkDeleteMutation = useBulkDeleteItems()
+  const bulkUpdateDisposedMutation = useBulkUpdateItemsDisposedStatus()
+  const bulkMoveToContainerMutation = useBulkMoveToContainer()
+  const bulkUpdateStorageLocationMutation = useBulkUpdateStorageLocation()
   const disposeItemMutation = useDisposeItem()
   const undisposeItemMutation = useUndisposeItem()
   const returnItemMutation = useReturnItem()
-  
-  // 保管場所の選択肢を取得
-  const { data: storageLocationSuggestions } = useItemSuggestions('storage_location')
-  
-  // コンテナ情報を取得
-  const { containers } = useContainers()
-  
-  const { data, isLoading, error } = useItems({
-    page: 1, // クライアント側でページネーションを行うため、全データを取得
-    per_page: 1000, // 大きな値で全データを取得
-    search: searchTerm || undefined,
-    container_id: containerFilter && containerFilter !== 'all' ? containerFilter : undefined,
-    storage_type: storageTypeFilter !== 'all' ? storageTypeFilter : undefined,
-  })
 
-  const allItems = data?.data || []
-  
-  // フィルタリング処理
-  const filteredItems = allItems.filter(item => {
-    // ステータスフィルタ
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'available' && (item.is_disposed || item.is_on_loan)) return false
-      if (statusFilter === 'on_loan' && !item.is_on_loan) return false
-      if (statusFilter === 'disposed' && !item.is_disposed) return false
-    }
-    
-    // QRコードフィルタ
-    if (qrCodeFilter !== 'all') {
-      const qrType = item.qr_code_type || 'none'
-      if (qrCodeFilter !== qrType) return false
-    }
-    
-    // 減価償却フィルタ
-    if (depreciationFilter !== 'all') {
-      if (depreciationFilter === 'target' && !item.is_depreciation_target) return false
-      if (depreciationFilter === 'not_target' && item.is_depreciation_target) return false
-    }
-    
-    // 保管場所フィルタ
-    if (storageLocationFilter && storageLocationFilter !== 'all') {
-      if (item.storage_location !== storageLocationFilter) return false
-    }
-    
-    // コンテナフィルタ
-    if (containerFilter && containerFilter !== 'all') {
-      if (item.container_id !== containerFilter) return false
-    }
-    
-    // 保管タイプフィルタ
-    if (storageTypeFilter !== 'all') {
-      if (storageTypeFilter === 'location' && item.storage_type !== 'location') return false
-      if (storageTypeFilter === 'container' && item.storage_type !== 'container') return false
-    }
-    
-    // 購入年フィルタ
-    if (purchaseYearFrom && item.purchase_year && item.purchase_year < parseInt(purchaseYearFrom)) return false
-    if (purchaseYearTo && item.purchase_year && item.purchase_year > parseInt(purchaseYearTo)) return false
-    
-    return true
-  })
-  
-  // ソート処理
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    const { column, direction } = sortDescriptor
-    let aValue: any = a[column as keyof Item]
-    let bValue: any = b[column as keyof Item]
-    
-    // 文字列の場合
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      aValue = aValue.toLowerCase()
-      bValue = bValue.toLowerCase()
-    }
-    
-    // 数値の場合
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return direction === 'ascending' ? aValue - bValue : bValue - aValue
-    }
-    
-    // 日付の場合
-    if (column === 'created_at' || column === 'updated_at') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
-      return direction === 'ascending' ? aValue - bValue : bValue - aValue
-    }
-    
-    // 文字列比較
-    if (aValue < bValue) return direction === 'ascending' ? -1 : 1
-    if (aValue > bValue) return direction === 'ascending' ? 1 : -1
-    return 0
-  })
-  
-  // ページネーション処理
-  const itemsPerPage = 20
-  const totalFilteredItems = sortedItems.length
-  const totalPages = Math.ceil(totalFilteredItems / itemsPerPage)
-  const startIndex = (page - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const items = sortedItems.slice(startIndex, endIndex)
-
-  const allColumns = [
-    { key: 'image', label: '画像', sortable: false, width: '80px' },
-    { key: 'label_id', label: 'ラベルID', sortable: true },
-    { key: 'name', label: '備品名', sortable: true },
-    { key: 'model_number', label: '型番', sortable: true },
-    { key: 'purchase_info', label: '購入情報', sortable: false },
-    { key: 'purchase_year', label: '購入年', sortable: true },
-    { key: 'purchase_amount', label: '購入金額', sortable: true },
-    { key: 'durability_years', label: '耐用年数', sortable: true },
-    { key: 'connections', label: '接続端子', sortable: false },
-    { key: 'cable_colors', label: 'ケーブル色', sortable: false },
-    { key: 'storage_location', label: '保管場所', sortable: false },
-    { key: 'container', label: 'コンテナ', sortable: false },
-    { key: 'qr_code_type', label: 'QRコード', sortable: true },
-    { key: 'depreciation', label: '減価償却', sortable: true },
-    { key: 'status', label: 'ステータス', sortable: false },
-    { key: 'created_at', label: '作成日', sortable: true },
-    { key: 'updated_at', label: '更新日', sortable: true },
-    { key: 'actions', label: '操作', sortable: false, width: 'auto' },
-  ]
-
-  const columns = allColumns.filter(col => visibleColumns.has(col.key) || col.key === 'actions')
-
-  // Save column visibility to cookie
-  const saveColumnVisibility = (columns: Set<string>) => {
-    try {
-      const columnsArray = Array.from(columns)
-      const value = encodeURIComponent(JSON.stringify(columnsArray))
-      const expires = new Date()
-      expires.setFullYear(expires.getFullYear() + 1) // 1 year expiry
-      document.cookie = `itemsListColumns=${value}; expires=${expires.toUTCString()}; path=/`
-    } catch (error) {
-      console.error('Failed to save column visibility:', error)
-    }
+  const handleUpdate = async (id: string, field: keyof Item, value: any) => {
+    await updateItemMutation.mutateAsync({ id, data: { [field]: value } })
   }
 
-  const toggleColumnVisibility = (columnKey: string) => {
-    const newVisibleColumns = new Set(visibleColumns) as Set<string>
-    if (newVisibleColumns.has(columnKey)) {
-      newVisibleColumns.delete(columnKey)
-    } else {
-      newVisibleColumns.add(columnKey)
+  const handleCreate = async ({ name, label_id }: { name: string; label_id: string }) => {
+    await createItemMutation.mutateAsync({ name, label_id, storage_type: "location" })
+  }
+
+  const handleBulkDispose = async () => {
+    if (selectionKeys !== 'all') {
+      await bulkUpdateDisposedMutation.mutateAsync({
+        ids: Array.from(selectionKeys) as string[],
+        is_disposed: true,
+      })
     }
-    setVisibleColumns(newVisibleColumns)
-    saveColumnVisibility(newVisibleColumns)
+    setSelectionKeys(new Set([]))
   }
 
-  const resetFilters = () => {
-    setStatusFilter('all')
-    setQrCodeFilter('all')
-    setDepreciationFilter('all')
-    setStorageLocationFilter('')
-    setContainerFilter('')
-    setStorageTypeFilter('all')
-    setPurchaseYearFrom('')
-    setPurchaseYearTo('')
-    setPage(1)
+  const handleBulkUndispose = async () => {
+    if (selectionKeys !== 'all') {
+      await bulkUpdateDisposedMutation.mutateAsync({
+        ids: Array.from(selectionKeys) as string[],
+        is_disposed: false,
+      })
+    }
+    setSelectionKeys(new Set([]))
   }
 
+  const handleBulkMoveToContainer = async (containerId: string) => {
+    if (selectionKeys !== 'all') {
+      await bulkMoveToContainerMutation.mutateAsync({
+        ids: Array.from(selectionKeys) as string[],
+        containerId,
+      })
+    }
+    setSelectionKeys(new Set([]))
+  }
+
+  
   const handleReturnItem = async (itemId: string) => {
-    try {
-      // Get active loan for this item using the loans service
-      const loansResponse = await fetch(`/api/v1/loans?item_id=${itemId}&status=active`)
-      if (loansResponse.ok) {
-        const loansData = await loansResponse.json()
-        const activeLoans = loansData.loans || loansData.data || []
-        const activeLoan = activeLoans.find((loan: any) => !loan.return_date)
-        
-        if (activeLoan?.id) {
-          await returnItemMutation.mutateAsync({
-            id: activeLoan.id,
-            data: {
-              remarks: '一覧画面から返却'
-            }
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Return item error:', error)
-    }
+    console.log("Returning item:", itemId)
   }
 
-  const handleExportItemsCsv = async () => {
-    try {
-      // Create CSV content based on dashi's format
-      const csvContent = generateItemsCsv(allItems)
-      downloadCsv(csvContent, 'item_list.csv')
-    } catch (error) {
-      console.error('CSV export error:', error)
-    }
-  }
+  const renderCell = useCallback((item: Item, columnKey: React.Key) => {
+    const cellValue = item[columnKey as keyof Item]
 
-  const handleExportDepreciationCsv = async () => {
-    try {
-      // Filter items where is_depreciation_target is true
-      const depreciationItems = allItems.filter(item => item.is_depreciation_target)
-      const csvContent = generateDepreciationCsv(depreciationItems)
-      downloadCsv(csvContent, 'depreciation.csv')
-    } catch (error) {
-      console.error('CSV export error:', error)
-    }
-  }
-
-  const generateItemsCsv = (items: Item[]) => {
-    const headers = ['型番', '物品名', '個数', '物品詳細', '保管場所', '使用用途', '使用時期', '年間必要数', '備考']
-    const rows = items.map(item => [
-      item.model_number || '',
-      item.name || '',
-      '1', // Fixed quantity as per dashi implementation
-      item.remarks || '',
-      item.storage_location || '仮で埋めている', // Default as per dashi
-      '', // Usage - empty as per dashi
-      '当日', // Duration - "Same day" as per dashi
-      '1', // Required quantity - fixed as per dashi
-      item.remarks || '', // Notes/remarks
-    ])
-    
-    return [headers, ...rows].map(row => 
-      row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(',')
-    ).join('\n')
-  }
-
-  const generateDepreciationCsv = (items: Item[]) => {
-    const headers = ['物品名', '型番', '耐用年数', '購入年度', '購入金額']
-    const rows = items.map(item => [
-      item.name || '',
-      item.model_number || '',
-      item.durability_years?.toString() || '',
-      item.purchase_year?.toString() || '',
-      item.purchase_amount?.toString() || '',
-    ])
-    
-    return [headers, ...rows].map(row => 
-      row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(',')
-    ).join('\n')
-  }
-
-  const downloadCsv = (content: string, filename: string) => {
-    const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' }) // Add BOM for Excel
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-
-  const renderCell = (item: Item, columnKey: React.Key) => {
     switch (columnKey) {
-      case 'image':
-        return item.image_url ? (
-          <div className="flex justify-center">
-            <img 
-              src={item.image_url} 
-              alt={item.name}
-              className="w-12 h-12 object-cover rounded-lg"
-            />
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-gray-400 text-xs">画像なし</span>
-            </div>
-          </div>
-        )
-      
-      case 'label_id':
-        return (
-          <div className="min-w-[80px] font-mono">
-            {item.label_id || '-'}
-          </div>
-        )
-      
       case 'name':
         return (
-          <div className="min-w-[150px]">
-            {item.name || '-'}
-          </div>
+          <EditableCell value={item.name} onSave={(value) => handleUpdate(item.id, 'name', value)}>
+            <span className="font-semibold">{item.name}</span>
+          </EditableCell>
         )
-      
+      case 'label_id':
+        return (
+          <EditableCell value={item.label_id} onSave={(value) => handleUpdate(item.id, 'label_id', value)}>
+            <span className="font-mono">{item.label_id}</span>
+          </EditableCell>
+        )
       case 'model_number':
         return (
-          <div className="min-w-[120px]">
-            {item.model_number || '-'}
-          </div>
+          <EditableCell value={item.model_number || ''} onSave={(value) => handleUpdate(item.id, 'model_number', value)}>
+            <span>{item.model_number}</span>
+          </EditableCell>
         )
-      
-      case 'purchase_info':
-        const purchaseInfo = []
-        if (item.purchase_year) purchaseInfo.push(`${item.purchase_year}年`)
-        if (item.purchase_amount) purchaseInfo.push(`¥${item.purchase_amount.toLocaleString()}`)
-        return purchaseInfo.length > 0 ? (
-          <div className="text-sm">
-            {purchaseInfo.map((info, index) => (
-              <div key={index}>{info}</div>
-            ))}
-          </div>
-        ) : '-'
-      
-      case 'durability_years':
-        return item.durability_years ? `${item.durability_years}年` : '-'
-      
-      case 'cable_colors':
-        return item.cable_color_pattern?.length ? (
-          <div className="flex justify-center">
-            <CableVisualization 
-              colorNames={item.cable_color_pattern} 
-              size="sm"
+      case 'storage_location': {
+        // Disable editing if storage_type is "container"
+        const isLocationEditable = item.storage_type !== "container";
+        if (!isLocationEditable) {
+          return (
+            <Chip size="sm" variant="flat" color="default">
+              {item.storage_location ? item.storage_location : '保管場所未設定'}
+            </Chip>
+          );
+        }
+        return (
+          <EditableCell
+            value={item.storage_location || ''}
+            onSave={(value) => handleUpdate(item.id, 'storage_location', value)}
+          >
+            <Chip size="sm" variant="flat" color="default">
+              {item.storage_location ? item.storage_location : '保管場所未設定'}
+            </Chip>
+          </EditableCell>
+        );
+      }
+      case 'container_id': {
+        // Disable editing if storage_type is "location"
+        const isContainerEditable = item.storage_type !== "location";
+        const container = containers.find(c => c.id === item.container_id)
+        if (!isContainerEditable) {
+          return (
+            <div className="flex items-center gap-2">
+              <Package size={16} className="text-gray-500" />
+              {container?.name || '-'}
+            </div>
+          );
+        }
+        return (
+          <EditableCell
+            value={item.container_id || ''}
+            onSave={(value) => handleUpdate(item.id, 'container_id', value)}
+          >
+            <div className="flex items-center gap-2">
+              <Package size={16} className="text-gray-500" />
+              {container?.name || '-'}
+            </div>
+          </EditableCell>
+        );
+      }
+      case 'remarks':
+        return (
+          <EditableCell value={item.remarks || ''} onSave={(value) => handleUpdate(item.id, 'remarks', value)}>
+            <span>{item.remarks}</span>
+          </EditableCell>
+        )
+      case 'purchase_year':
+        if (!item.purchase_year) return '-'
+        // Format as yyyy/mm/dd
+        const date = new Date(item.purchase_year)
+        const yyyy = date.getFullYear()
+        const mm = String(date.getMonth() + 1).padStart(2, '0')
+        const dd = String(date.getDate()).padStart(2, '0')
+        return `${yyyy}/${mm}/${dd}`
+      case 'created_at':
+        if (!item.created_at) return '-'
+        const createdDate = new Date(item.created_at)
+        const cYyyy = createdDate.getFullYear()
+        const cMm = String(createdDate.getMonth() + 1).padStart(2, '0')
+        const cDd = String(createdDate.getDate()).padStart(2, '0')
+        return `${cYyyy}/${cMm}/${cDd}`
+      case 'updated_at':
+        if (!item.updated_at) return '-'
+        const updatedDate = new Date(item.updated_at)
+        const uYyyy = updatedDate.getFullYear()
+        const uMm = String(updatedDate.getMonth() + 1).padStart(2, '0')
+        const uDd = String(updatedDate.getDate()).padStart(2, '0')
+        return `${uYyyy}/${uMm}/${uDd}`
+      case 'image_url':
+        if (!item.image_url) return '-'
+        return (
+          <div className="flex items-center">
+            <img 
+              src={item.image_url} 
+              alt="Item" 
+              className="w-10 h-10 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => window.open(item.image_url, '_blank')}
+              title="クリックで拡大表示"
             />
           </div>
-        ) : '-'
-      
-      case 'connections':
-        const connections = item.connection_names?.slice(0, 2) || []
-        return connections.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {connections.map((conn, index) => (
-              <Chip key={index} size="sm" variant="flat" color="primary">
-                {conn}
-              </Chip>
-            ))}
-            {(item.connection_names?.length || 0) > 2 && (
-              <Chip size="sm" variant="flat">+{(item.connection_names?.length || 0) - 2}</Chip>
-            )}
-          </div>
-        ) : '-'
-      
-      case 'storage_location':
-        return item.storage_location ? (
-          <Chip size="sm" variant="flat" color="success">
-            {item.storage_location}
-          </Chip>
-        ) : '-'
-      
-      case 'container':
-        if (item.storage_type === 'container' && item.container_id) {
-          const container = containers.find(c => c.id === item.container_id)
-          return container ? (
-            <Chip size="sm" variant="flat" color="secondary">
-              {container.name} ({container.location})
-            </Chip>
-          ) : (
-            <Chip size="sm" variant="flat">
-              {item.container_id}
-            </Chip>
-          )
-        }
-        return '-'
-      
-      case 'qr_code_type':
-        if (!item.qr_code_type || item.qr_code_type === 'none') {
-          return '-'
-        }
-        return (
-          <Chip 
-            color={item.qr_code_type === 'qr' ? 'primary' : 'secondary'} 
-            size="sm" 
-            variant="flat"
-          >
-            {item.qr_code_type === 'qr' ? 'QR' : 'バーコード'}
-          </Chip>
         )
-      
-      case 'depreciation':
-        return (
-          <Chip 
-            color={item.is_depreciation_target ? 'warning' : 'default'} 
-            size="sm" 
-            variant="flat"
-          >
-            {item.is_depreciation_target ? '対象' : '対象外'}
-          </Chip>
-        )
-      
-      case 'status':
-        const statusChips = []
-        
-        if (item.is_disposed) {
-          statusChips.push(<Chip key="disposed" color="danger" size="sm">廃棄済み</Chip>)
-        } else if (item.is_on_loan) {
-          statusChips.push(<Chip key="on_loan" color="warning" size="sm">貸出中</Chip>)
-        } else {
-          statusChips.push(<Chip key="available" color="success" size="sm">利用可能</Chip>)
-        }
-        
-        return (
-          <div className="flex flex-col gap-1">
-            {statusChips}
-          </div>
-        )
-      
-      case 'purchase_year':
-        return item.purchase_year || '-'
-      
-      case 'purchase_amount':
-        return item.purchase_amount ? `¥${item.purchase_amount.toLocaleString()}` : '-'
-      
-      case 'created_at':
-        return (
-          <div className="text-xs text-gray-600">
-            {new Date(item.created_at).toLocaleDateString('ja-JP')}
-          </div>
-        )
-      
-      case 'updated_at':
-        return (
-          <div className="text-xs text-gray-600">
-            {new Date(item.updated_at).toLocaleDateString('ja-JP')}
-          </div>
-        )
-      
-      case 'dates':
-        return (
-          <div className="text-xs text-gray-600">
-            <div>作成: {new Date(item.created_at).toLocaleDateString('ja-JP')}</div>
-            <div>更新: {new Date(item.updated_at).toLocaleDateString('ja-JP')}</div>
-          </div>
-        )
-      
+      case 'is_disposed':
+        if (item.is_disposed) return <Chip color="danger" size="sm">廃棄済み</Chip>
+        return <Chip color="success" size="sm">利用可能</Chip>
       case 'actions':
         return (
           <div className="flex gap-1 justify-end">
-            <Button
-              as={Link}
-              to={`/items/${item.id}`}
-              isIconOnly
-              size="sm"
-              variant="light"
-              title="詳細"
-              className="min-w-unit-8 w-8 h-8"
-            >
+            <Button as={Link} to={`/items/${item.id}`} isIconOnly size="sm" variant="light" title="詳細">
               <Eye size={16} />
             </Button>
-            <Button
-              as={Link}
-              to={`/items/${item.id}/edit`}
-              isIconOnly
-              size="sm"
-              variant="light"
-              color="primary"
-              title="編集"
-              className="min-w-unit-8 w-8 h-8"
-            >
+            <Button as={Link} to={`/items/${item.id}/edit`} isIconOnly size="sm" variant="light" color="primary" title="編集">
               <Edit size={16} />
             </Button>
             {!item.is_disposed && !item.is_on_loan && (
-              <Button
-                as={Link}
-                to={`/loans/new?item_id=${item.id}`}
-                isIconOnly
-                size="sm"
-                variant="light"
-                color="primary"
-                title="貸出"
-                className="min-w-unit-8 w-8 h-8"
-              >
+              <Button as={Link} to={`/loans/new?item_id=${item.id}`} isIconOnly size="sm" variant="light" color="primary" title="貸出">
                 <Users size={16} />
               </Button>
             )}
             {!item.is_disposed && item.is_on_loan && (
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                color="warning"
-                title="返却"
-                onPress={() => handleReturnItem(item.id)}
-                isLoading={returnItemMutation.isPending}
-                className="min-w-unit-8 w-8 h-8"
-              >
+              <Button isIconOnly size="sm" variant="light" color="warning" title="返却" onPress={() => handleReturnItem(item.id)} isLoading={returnItemMutation.isPending}>
                 <Undo size={16} />
               </Button>
             )}
             {item.is_disposed ? (
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                color="success"
-                title="廃棄解除"
-                onPress={() => undisposeItemMutation.mutate(item.id)}
-                isLoading={undisposeItemMutation.isPending}
-                className="min-w-unit-8 w-8 h-8"
-              >
+              <Button isIconOnly size="sm" variant="light" color="success" title="復元" onPress={() => undisposeItemMutation.mutate(item.id)} isLoading={undisposeItemMutation.isPending}>
                 <RotateCcw size={16} />
               </Button>
             ) : (
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                color="danger"
-                title="廃棄"
-                onPress={() => disposeItemMutation.mutate(item.id)}
-                isLoading={disposeItemMutation.isPending}
-                className="min-w-unit-8 w-8 h-8"
-              >
+              <Button isIconOnly size="sm" variant="light" color="danger" title="廃棄" onPress={() => disposeItemMutation.mutate(item.id)} isLoading={disposeItemMutation.isPending}>
                 <Trash2 size={16} />
               </Button>
             )}
           </div>
         )
-      
       default:
-        return item[columnKey as keyof Item] || '-'
+        return cellValue as React.ReactNode
+    }
+  }, [containers, updateItemMutation, disposeItemMutation, undisposeItemMutation, returnItemMutation])
+
+  const renderCard = useCallback((item: Item) => (
+    <div className="flex flex-col gap-2">
+      <div className="font-bold text-lg">{item.name}</div>
+      <div className="text-sm text-gray-500">{item.label_id}</div>
+      <div>{renderCell(item, 'is_disposed')}</div>
+      <div className="flex justify-end">
+        {renderCell(item, 'actions')}
+      </div>
+    </div>
+  ), [renderCell])
+
+  // (moved above for persistence logic)
+
+  if (error) return <div>備品の読み込み中にエラーが発生しました: {error.message}</div>
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">備品管理</h1>
+      
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
+        <Input
+          isClearable
+          className="w-full lg:max-w-md"
+          placeholder="名称・ラベル・型番で検索..."
+          startContent={<Search />}
+          value={searchTerm}
+          onClear={() => setSearchTerm('')}
+          onValueChange={setSearchTerm}
+        />
+        <div className="flex items-center gap-2">
+          <AdvancedFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            containers={containers}
+            uniqueValues={uniqueValues}
+          />
+          <Button
+            size="sm"
+            variant="bordered"
+            aria-label="カラム設定"
+            onClick={() => setShowColumnModal(true)}
+          >
+            カラム設定
+          </Button>
+        </div>
+        {showColumnModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.2)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={() => setShowColumnModal(false)}
+          >
+            <div
+              style={{
+                background: 'white',
+                borderRadius: 8,
+                boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
+                padding: 24,
+                minWidth: 320,
+                maxWidth: 400,
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                position: 'relative'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-bold mb-2">カラム設定</h2>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={({ active, over }) => {
+                  if (active.id !== over?.id && over?.id) {
+                    const oldIndex = columnOrder.indexOf(active.id as string)
+                    const newIndex = columnOrder.indexOf(over.id as string)
+                    const newOrder = arrayMove(columnOrder, oldIndex, newIndex)
+                    setColumnOrder(newOrder)
+                    localStorage.setItem(columnOrderStorageKey, JSON.stringify(newOrder))
+                  }
+                }}
+              >
+                <SortableContext
+                  items={visibleColumnKeys}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {/* Draggable for visible columns */}
+                  <SortableContext
+                    items={orderedVisibleColumnKeys}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {orderedVisibleColumnKeys.map(key => {
+                      const col = allColumnDefs.find(c => c.key === key)
+                      if (!col) return null
+                      return (
+                        <SortableColumnItem
+                          key={col.key}
+                          id={col.key}
+                          label={col.label}
+                          checked={true}
+                          onToggle={() => handleToggleColumn(col.key as string)}
+                        />
+                      )
+                    })}
+                  </SortableContext>
+                  {/* Non-draggable for hidden columns */}
+                  {columnOrder
+                    .filter(key => !visibleColumnKeys.includes(key))
+                    .map(key => {
+                      const col = allColumnDefs.find(c => c.key === key)
+                      if (!col) return null
+                      return (
+                        <div key={col.key} className="flex items-center gap-2 px-2 py-1 opacity-60">
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={() => handleToggleColumn(col.key as string)}
+                            tabIndex={-1}
+                            className="accent-blue-500"
+                            style={{ pointerEvents: 'auto' }}
+                          />
+                          <span>{col.label}</span>
+                        </div>
+                      )
+                    })}
+                </SortableContext>
+              </DndContext>
+              <div className="flex justify-end mt-4">
+                <Button size="sm" variant="light" onClick={() => setShowColumnModal(false)}>
+                  閉じる
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
+        <EnhancedList<Item>
+          items={items}
+          columns={columns}
+          isLoading={isLoading}
+          sortDescriptor={sortDescriptor}
+          onSortChange={setSortDescriptor}
+          renderCell={renderCell}
+          renderCard={renderCard}
+          emptyContent={<p>備品が見つかりません</p>}
+          selectionMode="multiple"
+          selectedKeys={selectionKeys}
+          onSelectionChange={setSelectionKeys}
+        />
+      </div>
+
+      <div className="py-4">
+        <InlineCreatorRow
+          onSave={async ({ name, label_id, container_id, storage_location }) => {
+            await createItemMutation.mutateAsync({
+              name,
+              label_id,
+              container_id,
+              storage_location,
+              storage_type: container_id ? "container" : "location"
+            })
+          }}
+          placeholder="新規備品作成..."
+          extraFields={[
+            {
+              key: 'container_id',
+              label: 'コンテナ',
+              type: 'select',
+              options: containers.map((c) => ({
+                value: c.id,
+                label: `${c.name} - ${c.location || ''}`,
+              })),
+            },
+            {
+              key: 'storage_location',
+              label: '保管場所',
+              type: 'suggest',
+              suggestions: Array.from(new Set(items.map(i => i.storage_location).filter(Boolean))),
+            },
+          ]}
+        />
+      </div>
+
+      <BulkActionBar
+        selectedCount={selectionKeys === 'all' ? data?.total || 0 : selectionKeys.size}
+        onClearSelection={() => setSelectionKeys(new Set([]))}
+        onDispose={handleBulkDispose}
+        onUndispose={handleBulkUndispose}
+        onMoveToContainer={handleBulkMoveToContainer}
+        containers={containers}
+      />
+    </div>
+  )
+}
+
+// Custom inline creator row for ItemsList
+function CustomInlineCreatorRow({ containers, locationSuggestions, onSave }: {
+  containers: Container[],
+  locationSuggestions: string[],
+  onSave: (value: { name: string; label_id: string; container_id?: string; storage_location?: string }) => Promise<void>
+}) {
+  const [isCreating, setIsCreating] = useState(false)
+  const [name, setName] = useState('')
+  const [labelId, setLabelId] = useState('')
+  const [containerId, setContainerId] = useState('')
+  const [storageLocation, setStorageLocation] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (name.trim() && labelId.trim()) {
+      setIsSaving(true)
+      await onSave({
+        name: name.trim(),
+        label_id: labelId.trim(),
+        container_id: containerId || undefined,
+        storage_location: storageLocation || undefined,
+      })
+      setIsSaving(false)
+      setName('')
+      setLabelId('')
+      setContainerId('')
+      setStorageLocation('')
+      setIsCreating(false)
     }
   }
 
-  if (error) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setName('')
+      setLabelId('')
+      setContainerId('')
+      setStorageLocation('')
+      setIsCreating(false)
+    }
+  }
+
+  if (isCreating) {
     return (
-      <div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">備品一覧</h1>
-          <Button
-            as={Link}
-            to="/items/new"
-            color="primary"
-            startContent={<Plus size={20} />}
-            className="text-xs sm:text-sm"
+      <div className="flex gap-2 p-2 flex-wrap">
+        <Input
+          autoFocus
+          aria-label="New item name"
+          placeholder="Name"
+          value={name}
+          onValueChange={setName}
+          onKeyDown={handleKeyDown}
+          size="sm"
+          className="flex-grow"
+          disabled={isSaving}
+        />
+        <Input
+          aria-label="Label ID"
+          placeholder="Label ID"
+          value={labelId}
+          onValueChange={setLabelId}
+          onKeyDown={handleKeyDown}
+          size="sm"
+          className="flex-grow"
+          disabled={isSaving}
+        />
+        <div className="w-36">
+          <Select
+            aria-label="コンテナ"
+            placeholder="コンテナ"
+            selectedKeys={containerId ? new Set([containerId]) : new Set()}
+            onSelectionChange={keys => setContainerId(Array.from(keys)[0] as string)}
+            size="sm"
+            disabled={isSaving}
           >
-            新規登録
-          </Button>
+            {containers.map(c =>
+              <SelectItem key={c.id}>{c.name} - <span className="text-gray-500">{c.location}</span></SelectItem>
+            )}
+          </Select>
         </div>
-        <Card>
-          <CardBody>
-            <p className="text-center text-danger">
-              エラーが発生しました: {(error as any)?.message || '不明なエラー'}
-            </p>
-          </CardBody>
-        </Card>
+        <div className="flex-grow">
+          <Autocomplete
+            aria-label="保管場所"
+            placeholder="保管場所を入力または選択"
+            allowsCustomValue
+            value={storageLocation}
+            onValueChange={setStorageLocation}
+            onKeyDown={handleKeyDown}
+            size="sm"
+            disabled={isSaving}
+          >
+            {locationSuggestions.map(loc => (
+              <AutocompleteItem key={loc} value={loc}>{loc}</AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
+        <Button
+          size="sm"
+          color="primary"
+          onPress={handleSave}
+          isLoading={isSaving}
+          disabled={!name.trim() || !labelId.trim()}
+        >
+          Save
+        </Button>
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">備品一覧</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="flat"
-            startContent={<Download size={16} />}
-            size="sm"
-            onPress={() => handleExportItemsCsv()}
-            className="text-xs sm:text-sm"
-          >
-            <span className="hidden sm:inline">物品リスト</span>CSV
-          </Button>
-          <Button
-            variant="flat"
-            startContent={<Download size={16} />}
-            size="sm"
-            onPress={() => handleExportDepreciationCsv()}
-            className="text-xs sm:text-sm"
-          >
-            <span className="hidden sm:inline">減価償却</span>CSV
-          </Button>
-          <Button
-            as={Link}
-            to="/items/new"
-            color="primary"
-            startContent={<Plus size={20} />}
-            className="text-xs sm:text-sm"
-          >
-            新規登録
-          </Button>
-        </div>
-      </div>
+    <Button
+      variant="light"
+      color="default"
+      className="w-full justify-start p-2"
+      startContent={<Plus size={16} />}
+      onPress={() => setIsCreating(true)}
+    >
+      新規備品作成...
+    </Button>
+  )
+}
 
-      <Card className="mb-6">
-        <CardBody>
-          <div className="space-y-4">
-            {/* 検索とアクション */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-end">
-              <Input
-                isClearable
-                placeholder="備品名、ラベルID、型番で検索..."
-                startContent={<Search size={20} />}
-                value={searchTerm}
-                onClear={() => setSearchTerm('')}
-                onValueChange={setSearchTerm}
-                className="flex-1"
-                size="sm"
-              />
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="flat"
-                  size="sm"
-                  onPress={resetFilters}
-                  className="text-xs sm:text-sm"
-                >
-                  <span className="hidden sm:inline">フィルタ</span>リセット
-                </Button>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      variant="flat"
-                      startContent={<Settings size={16} />}
-                      size="sm"
-                      className="text-xs sm:text-sm"
-                    >
-                      <span className="hidden sm:inline">カラム</span>表示
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    aria-label="カラム表示設定"
-                    closeOnSelect={false}
-                    className="max-w-[300px]"
-                  >
-                    {allColumns.filter(col => col.key !== 'actions').map((column) => (
-                      <DropdownItem key={column.key} className="capitalize">
-                        <Checkbox
-                          isSelected={visibleColumns.has(column.key)}
-                          onValueChange={() => toggleColumnVisibility(column.key)}
-                        >
-                          {column.label}
-                        </Checkbox>
-                      </DropdownItem>
-                    ))}
-                  </DropdownMenu>
-                </Dropdown>
-              </div>
-            </div>
-            
-            {/* フィルタ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-4">
-              <Select
-                label="ステータス"
-                placeholder="すべて"
-                selectedKeys={statusFilter ? [statusFilter] : []}
-                onSelectionChange={(keys) => {
-                  const key = Array.from(keys)[0] as string
-                  setStatusFilter(key as any)
-                  setPage(1)
-                }}
-                size="sm"
-              >
-                <SelectItem key="all">すべて</SelectItem>
-                <SelectItem key="available">利用可能</SelectItem>
-                <SelectItem key="on_loan">貸出中</SelectItem>
-                <SelectItem key="disposed">廃棄済み</SelectItem>
-              </Select>
-              
-              <Select
-                label="QRコード"
-                placeholder="すべて"
-                selectedKeys={qrCodeFilter ? [qrCodeFilter] : []}
-                onSelectionChange={(keys) => {
-                  const key = Array.from(keys)[0] as string
-                  setQrCodeFilter(key as any)
-                  setPage(1)
-                }}
-                size="sm"
-              >
-                <SelectItem key="all">すべて</SelectItem>
-                <SelectItem key="qr">QRコード</SelectItem>
-                <SelectItem key="barcode">バーコード</SelectItem>
-                <SelectItem key="none">なし</SelectItem>
-              </Select>
-              
-              <Select
-                label="減価償却"
-                placeholder="すべて"
-                selectedKeys={depreciationFilter ? [depreciationFilter] : []}
-                onSelectionChange={(keys) => {
-                  const key = Array.from(keys)[0] as string
-                  setDepreciationFilter(key as any)
-                  setPage(1)
-                }}
-                size="sm"
-              >
-                <SelectItem key="all">すべて</SelectItem>
-                <SelectItem key="target">対象</SelectItem>
-                <SelectItem key="not_target">対象外</SelectItem>
-              </Select>
-              
-              <Select
-                label="保管場所"
-                placeholder="すべて"
-                selectedKeys={storageLocationFilter ? [storageLocationFilter] : []}
-                onSelectionChange={(keys) => {
-                  const key = Array.from(keys)[0] as string
-                  setStorageLocationFilter(key === 'all' ? '' : key)
-                  setPage(1)
-                }}
-                size="sm"
-              >
-                <SelectItem key="all">すべて</SelectItem>
-                {(storageLocationSuggestions || []).map((location: string) => (
-                  <SelectItem key={location}>
-                    {location}
-                  </SelectItem>
-                )) as any}
-              </Select>
-              
-              <Select
-                label="保管タイプ"
-                placeholder="すべて"
-                selectedKeys={storageTypeFilter ? [storageTypeFilter] : []}
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as 'all' | 'location' | 'container'
-                  setStorageTypeFilter(value)
-                  setPage(1)
-                }}
-                size="sm"
-              >
-                <SelectItem key="all">すべて</SelectItem>
-                <SelectItem key="location">場所</SelectItem>
-                <SelectItem key="container">コンテナ</SelectItem>
-              </Select>
-              
-              <Select
-                label="コンテナ"
-                placeholder="すべて"
-                selectedKeys={containerFilter ? [containerFilter] : []}
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string
-                  setContainerFilter(value)
-                  setPage(1)
-                }}
-                size="sm"
-                isDisabled={storageTypeFilter === 'location'}
-              >
-                <SelectItem key="all">すべて</SelectItem>
-                {(containers?.map((containerWithCount) => (
-                  <SelectItem key={containerWithCount.id}>
-                    {containerWithCount.name} ({containerWithCount.id})
-                  </SelectItem>
-                )) || []) as any}
-              </Select>
-              
-              <Input
-                label="購入年（開始）"
-                placeholder="2020"
-                type="number"
-                value={purchaseYearFrom}
-                onValueChange={(value) => {
-                  setPurchaseYearFrom(value)
-                  setPage(1)
-                }}
-                size="sm"
-              />
-              
-              <Input
-                label="購入年（終了）"
-                placeholder="2024"
-                type="number"
-                value={purchaseYearTo}
-                onValueChange={(value) => {
-                  setPurchaseYearTo(value)
-                  setPage(1)
-                }}
-                size="sm"
-              />
-            </div>
-            
-            {/* フィルタ結果表示 */}
-            <div className="text-sm text-gray-600">
-              {totalFilteredItems}件中 {items.length}件を表示
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      <Card className="overflow-hidden">
-        <CardBody className="p-0">
-          <div className="overflow-x-auto">
-            <Table
-              aria-label="備品一覧"
-              removeWrapper
-              sortDescriptor={sortDescriptor}
-              onSortChange={setSortDescriptor}
-              className="min-w-full"
-              bottomContent={
-                totalPages > 1 && (
-                  <div className="flex w-full justify-center py-2">
-                    <Pagination
-                      isCompact
-                      showControls
-                      showShadow
-                      color="primary"
-                      page={page}
-                      total={totalPages}
-                      onChange={setPage}
-                    />
-                  </div>
-                )
-              }
-            >
-              <TableHeader columns={columns} className="sticky top-0 z-10 bg-background">
-                {(column) => (
-                  <TableColumn 
-                    key={column.key} 
-                    align={column.key === 'actions' ? 'end' : 'start'}
-                    allowsSorting={column.sortable}
-                    width={column.width as any}
-                    className={column.key === 'actions' ? 'sticky right-0 bg-background' : ''}
-                  >
-                    <span className="text-xs sm:text-sm">{column.label}</span>
-                  </TableColumn>
-                )}
-              </TableHeader>
-              <TableBody
-                items={items}
-                isLoading={isLoading}
-                loadingContent={<Spinner label="読み込み中..." />}
-                emptyContent="備品が登録されていません"
-              >
-                {(item) => (
-                  <TableRow key={item.id}>
-                    {(columnKey) => (
-                      <TableCell 
-                        className={columnKey === 'actions' ? 'sticky right-0 bg-background' : ''}
-                      >
-                        <div className="text-xs sm:text-sm">
-                          {renderCell(item, columnKey)}
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardBody>
-      </Card>
-
+// Sortable column item for drag-and-drop
+function SortableColumnItem({ id, label, checked, onToggle }: { id: string, label: string, checked: boolean, onToggle: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'grab',
+    background: isDragging ? '#f0f0f0' : undefined,
+    borderRadius: 4,
+    padding: '2px 0'
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="flex items-center gap-2 px-2 py-1">
+      <GripVertical size={16} className="text-gray-400" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        tabIndex={-1}
+        className="accent-blue-500"
+        style={{ pointerEvents: 'auto' }}
+      />
+      <span>{label}</span>
     </div>
   )
 }

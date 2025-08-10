@@ -18,7 +18,9 @@ export function ItemDetail() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
   
   // Fetch container information if item is stored in a container
-  const { container } = useContainer(item?.storage_type === 'container' ? (item.container_id ?? null) : null)
+  const { data: container, isLoading: isContainerLoading } = useContainer(
+    item?.storage_type === 'container' && item.container_id ? item.container_id : ''
+  )
 
   if (isLoading) {
     return (
@@ -192,7 +194,11 @@ export function ItemDetail() {
                   <dt className="text-sm text-gray-600">保管情報</dt>
                   <dd className="flex flex-wrap gap-2 mt-1">
                     {item.storage_type === 'container' ? (
-                      container ? (
+                      isContainerLoading ? (
+                        <Chip variant="flat" color="warning" size="sm">
+                          コンテナ情報を読み込み中...
+                        </Chip>
+                      ) : container ? (
                         <>
                           <Chip variant="flat" color="primary" size="sm">
                             コンテナ: {container.name} ({container.id})
@@ -202,8 +208,8 @@ export function ItemDetail() {
                           </Chip>
                         </>
                       ) : (
-                        <Chip variant="flat" color="warning" size="sm">
-                          コンテナ情報を読み込み中...
+                        <Chip variant="flat" color="default" size="sm">
+                          コンテナ情報なし
                         </Chip>
                       )
                     ) : (

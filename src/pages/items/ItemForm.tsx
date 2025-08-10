@@ -14,9 +14,10 @@ import {
   Spinner,
   Snippet,
 } from '@heroui/react'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import { Item } from '@/types'
-import { useItem, useCreateItem, useUpdateItem, useItemSuggestions, useContainers } from '@/hooks'
+import { useItem, useCreateItem, useUpdateItem, useDeleteItem, useItemSuggestions, useContainers } from '@/hooks'
+import { itemsService, idCheckService, DuplicateItem } from '@/services'
 import { ArrayInput } from '@/components/ui/ArrayInput'
 import { CableColorInput } from '@/components/ui/CableColorInput'
 import { ImageUpload } from '@/components/ui/ImageUpload'
@@ -38,7 +39,8 @@ export function ItemForm() {
   const { data: locationSuggestions = [] } = useItemSuggestions('storage_location')
   
   // Fetch containers for container selection
-  const { containers = [] } = useContainers()
+  const { data: containersData } = useContainers()
+  const containers = containersData?.containers || []
   
   // Debug logs (development only)
   if (import.meta.env.VITE_DEV_MODE === 'true') {
@@ -55,9 +57,16 @@ export function ItemForm() {
   // Mutations
   const createItemMutation = useCreateItem()
   const updateItemMutation = useUpdateItem()
+  const deleteItemMutation = useDeleteItem()
   
   // Error state
   const [submitError, setSubmitError] = useState<string | null>(null)
+  
+  // Duplicate warning state
+  const [isDuplicateId, setIsDuplicateId] = useState(false)
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
+  const [duplicateFoundIn, setDuplicateFoundIn] = useState<string[]>([])
+  const [duplicateItems, setDuplicateItems] = useState<DuplicateItem[]>([])
 
   const {
     register,
@@ -94,6 +103,59 @@ export function ItemForm() {
   // Debug: Watch form values (development only)
   if (import.meta.env.VITE_DEV_MODE === 'true') {
     console.log('Form values:', formValues)
+  }
+  
+  // リアルタイム重複チェック
+  useEffect(() => {
+    const checkDuplicate = async () => {
+      if (!formValues.label_id?.trim()) {
+        setIsDuplicateId(false)
+        setIsCheckingDuplicate(false)
+        setDuplicateFoundIn([])
+        setDuplicateItems([])
+        return
+      }
+      
+      // 編集時で元のIDと同じ場合はチェックしない
+      if (isEdit && item && formValues.label_id === item.label_id) {
+        setIsDuplicateId(false)
+        setIsCheckingDuplicate(false)
+        setDuplicateFoundIn([])
+        setDuplicateItems([])
+        return
+      }
+      
+      setIsCheckingDuplicate(true)
+      
+      try {
+        const response = await idCheckService.checkGlobalId(formValues.label_id)
+        setIsDuplicateId(response.exists)
+        setDuplicateFoundIn(response.found_in)
+        setDuplicateItems(response.duplicates)
+      } catch (error) {
+        console.error('ラベルID重複チェックエラー:', error)
+        setIsDuplicateId(false)
+        setDuplicateFoundIn([])
+        setDuplicateItems([])
+      } finally {
+        setIsCheckingDuplicate(false)
+      }
+    }
+    
+    const timeoutId = setTimeout(checkDuplicate, 300) // 300ms のデバウンス
+    return () => clearTimeout(timeoutId)
+  }, [formValues.label_id, isEdit, item])
+  
+  // 重複メッセージを生成
+  const getDuplicateMessage = () => {
+    if (!isDuplicateId || duplicateItems.length === 0) return undefined
+    
+    const itemNames = duplicateItems.map(item => {
+      const typeLabel = item.item_type === 'container' ? 'コンテナ' : '備品'
+      return `${typeLabel}: ${item.name}`
+    })
+    
+    return `このIDは既に使用されています - ${itemNames.join(', ')}`
   }
 
   // Reset form with item data when editing
@@ -167,7 +229,7 @@ export function ItemForm() {
         // Array fields - ensure they are arrays
         connection_names: Array.isArray(data.connection_names) ? data.connection_names.filter(Boolean) : [],
         cable_color_pattern: Array.isArray(data.cable_color_pattern) ? data.cable_color_pattern.filter(Boolean) : [],
-        storage_location: data.storage_type === 'location' ? data.storage_location?.trim() || undefined : undefined,
+        storage_location: data.storage_location?.trim() || undefined,
         // Image URL - only include if not empty
         ...(data.image_url?.trim() && { image_url: data.image_url.trim() }),
         // Storage type and container ID
@@ -191,6 +253,12 @@ export function ItemForm() {
         
         await createItemMutation.mutateAsync(createData as Omit<Item, 'id' | 'created_at' | 'updated_at'>)
       }
+      
+      // Reset duplicate warning state on success
+      setIsDuplicateId(false)
+      setIsCheckingDuplicate(false)
+      setDuplicateFoundIn([])
+      setDuplicateItems([])
       navigate('/items')
     } catch (error: any) {
       console.error('Form submission error:', error)
@@ -213,6 +281,19 @@ export function ItemForm() {
       }
       
       setSubmitError(errorMessage)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!itemId) return
+    if (confirm(`備品「${item?.name || itemId}」を本当に削除しますか？この操作は元に戻せません。`)) {
+      try {
+        await deleteItemMutation.mutateAsync(itemId)
+        navigate('/items')
+      } catch (error: any) {
+        console.error('Item deletion failed:', error)
+        setSubmitError(error.message || '削除に失敗しました。')
+      }
     }
   }
 
@@ -308,9 +389,10 @@ export function ItemForm() {
               <Input
                 {...register('label_id', { required: 'ラベルIDは必須です' })}
                 label="ラベルID"
-                placeholder="例: PC-001"
-                errorMessage={errors.label_id?.message}
-                isInvalid={!!errors.label_id}
+                placeholder="例: 0X12"
+                errorMessage={errors.label_id?.message || getDuplicateMessage()}
+                isInvalid={!!errors.label_id || isDuplicateId}
+                color={isDuplicateId && !errors.label_id ? "danger" : "default"}
                 isRequired
                 value={formValues.label_id || ''}
               />
@@ -373,7 +455,7 @@ export function ItemForm() {
                 render={({ field }) => (
                   <SingleLocationInput
                     label={formValues.storage_type === 'container' ? "保管場所（自動設定）" : "保管場所"}
-                    placeholder={formValues.storage_type === 'container' ? "コンテナ選択時に自動設定されます" : "例: A棟201教室、機材庫"}
+                    placeholder={formValues.storage_type === 'container' ? "コンテナ選択時に自動設定されます" : "例: 3D212、機材庫"}
                     value={field.value || ''}
                     onChange={field.onChange}
                     suggestions={locationSuggestions}
@@ -446,9 +528,9 @@ export function ItemForm() {
                     {containers.map((container) => (
                       <SelectItem
                         key={container.id}
-                        textValue={`${container.name} (${container.id}) - ${container.location}`}
+                        textValue={`${container.name} - ${container.location}`}
                       >
-                        {container.name} ({container.id}) - {container.location}
+                        {container.name} - <span className="text-gray-500">{container.location}</span>
                       </SelectItem>
                     ))}
                   </Select>
@@ -501,6 +583,7 @@ export function ItemForm() {
           </CardBody>
         </Card>
 
+
         <Card className="mt-6">
           <CardHeader>
             <h2 className="text-lg sm:text-xl font-semibold">接続・配線情報</h2>
@@ -513,7 +596,7 @@ export function ItemForm() {
                 render={({ field }) => (
                   <ArrayInput
                     label="接続端子"
-                    placeholder="例: HDMI、USB-C、電源"
+                    placeholder="例: HDMI、USB-C"
                     values={formValues.connection_names || []}
                     onChange={(values) => {
                       field.onChange(values)
@@ -584,27 +667,43 @@ export function ItemForm() {
           </Card>
         )}
 
-        <div className="flex flex-col sm:flex-row justify-end gap-4 mt-6">
-          <Button
-            as={Link}
-            to="/items"
-            variant="flat"
-            isDisabled={createItemMutation.isPending || updateItemMutation.isPending}
-            size="sm"
-            className="text-xs sm:text-sm order-2 sm:order-1"
-          >
-            キャンセル
-          </Button>
-          <Button
-            type="submit"
-            color="primary"
-            startContent={<Save size={16} />}
-            isLoading={createItemMutation.isPending || updateItemMutation.isPending}
-            size="sm"
-            className="text-xs sm:text-sm order-1 sm:order-2"
-          >
-            {isEdit ? '更新' : '登録'}
-          </Button>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+          {isEdit && (
+            <Button
+              color="danger"
+              variant="light"
+              startContent={<Trash2 size={16} />}
+              onPress={handleDelete}
+              isLoading={deleteItemMutation.isPending}
+              size="sm"
+              className="text-xs sm:text-sm w-full sm:w-auto"
+            >
+              削除
+            </Button>
+          )}
+          <div className="flex flex-col sm:flex-row justify-end gap-4 w-full">
+            <Button
+              as={Link}
+              to="/items"
+              variant="flat"
+              isDisabled={createItemMutation.isPending || updateItemMutation.isPending}
+              size="sm"
+              className="text-xs sm:text-sm order-2 sm:order-1 w-full sm:w-auto"
+            >
+              キャンセル
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              startContent={<Save size={16} />}
+              isLoading={createItemMutation.isPending || updateItemMutation.isPending}
+              size="sm"
+              className="text-xs sm:text-sm order-1 sm:order-2 w-full sm:w-auto"
+              isDisabled={!formValues.name?.trim() || !formValues.label_id?.trim() || isCheckingDuplicate}
+            >
+              {isEdit ? '更新' : '登録'}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

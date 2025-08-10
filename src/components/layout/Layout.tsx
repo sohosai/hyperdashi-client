@@ -1,21 +1,24 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { 
-  Navbar, 
-  NavbarBrand, 
-  NavbarContent, 
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
   NavbarItem,
   NavbarMenuToggle,
   NavbarMenu,
   NavbarMenuItem,
-  Button
+  Button,
+  Tabs,
+  Tab
 } from '@heroui/react'
 import { useState } from 'react'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
-
+ 
 export function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-
+ 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)
   }
@@ -54,18 +57,24 @@ export function Layout() {
           </NavbarBrand>
         </NavbarContent>
 
-        <NavbarContent className="hidden sm:flex gap-4" justify="center">
-          {menuItems.map((item) => (
-            <NavbarItem key={item.href} isActive={item.isActive}>
-              <Link 
-                to={item.href} 
-                className={item.isActive ? 'text-primary' : ''}
-              >
-                {item.label}
-              </Link>
-            </NavbarItem>
-          ))}
-        </NavbarContent>
+        {/* HeroUI Tabs for page navigation */}
+        <div className="hidden sm:flex flex-1 justify-center items-center">
+          <div className="w-full max-w-3xl">
+            <Tabs
+              selectedKey={menuItems.find(item => item.isActive)?.href ?? '/'}
+              onSelectionChange={(key) => {
+                navigate(String(key))
+              }}
+              aria-label="ページ切り替え"
+              variant="underlined"
+              color="primary"
+            >
+              {menuItems.map((item) => (
+                <Tab key={item.href} title={item.label} />
+              ))}
+            </Tabs>
+          </div>
+        </div>
 
         <NavbarContent justify="end">
           <NavbarItem className="hidden sm:flex">

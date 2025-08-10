@@ -1,140 +1,88 @@
-import { useState, useEffect } from 'react'
-import { containerService, Container, ContainerWithItemCount, CreateContainerRequest, UpdateContainerRequest, ListContainersQuery } from '../services'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { containerService } from '@/services'
+import {
+  ContainerWithItemCount,
+  CreateContainerRequest,
+  UpdateContainerRequest,
+  BulkDeleteContainersRequest,
+  BulkUpdateContainersDisposedStatusRequest,
+} from '@/services'
 
-export function useContainers(query?: ListContainersQuery) {
-  const [containers, setContainers] = useState<ContainerWithItemCount[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchContainers = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await containerService.listContainers(query)
-      setContainers(response.containers)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '容器の取得に失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchContainers()
-  }, [query?.location, query?.include_disposed])
-
-  const createContainer = async (data: CreateContainerRequest) => {
-    try {
-      setError(null)
-      const response = await containerService.createContainer(data)
-      await fetchContainers() // リストを更新
-      return response.container
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '容器の作成に失敗しました'
-      setError(errorMsg)
-      throw new Error(errorMsg)
-    }
-  }
-
-  const updateContainer = async (id: string, data: UpdateContainerRequest) => {
-    try {
-      setError(null)
-      const response = await containerService.updateContainer(id, data)
-      await fetchContainers() // リストを更新
-      return response.container
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '容器の更新に失敗しました'
-      setError(errorMsg)
-      throw new Error(errorMsg)
-    }
-  }
-
-  const deleteContainer = async (id: string) => {
-    try {
-      setError(null)
-      await containerService.deleteContainer(id)
-      await fetchContainers() // リストを更新
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '容器の削除に失敗しました'
-      setError(errorMsg)
-      throw new Error(errorMsg)
-    }
-  }
-
-  return {
-    containers,
-    loading,
-    error,
-    refetch: fetchContainers,
-    createContainer,
-    updateContainer,
-    deleteContainer
-  }
+export function useContainers(params?: {
+  location?: string
+  include_disposed?: boolean
+  search?: string
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
+}) {
+  return useQuery({
+    queryKey: ['containers', params],
+    queryFn: () => containerService.listContainers(params),
+  })
 }
 
 export function useContainer(id: string | null) {
-  const [container, setContainer] = useState<Container | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchContainer = async () => {
-    if (!id) return
-    
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await containerService.getContainer(id)
-      setContainer(response.container)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '容器の取得に失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchContainer()
-  }, [id])
-
-  return {
-    container,
-    loading,
-    error,
-    refetch: fetchContainer
-  }
+  return useQuery({
+    queryKey: ['containers', id],
+    // Unwrap the { container } shape so consumers get Container directly
+    queryFn: async () => {
+      if (!id) return null
+      const res = await containerService.getContainer(id)
+      return res.container
+    },
+    enabled: !!id,
+  })
 }
 
-export function useContainersByLocation(location: string | null) {
-  const [containers, setContainers] = useState<Container[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function useCreateContainer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateContainerRequest) => containerService.createContainer(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] })
+    },
+  })
+}
 
-  const fetchContainers = async () => {
-    if (!location) {
-      setContainers([])
-      return
-    }
-    
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await containerService.getContainersByLocation(location)
-      setContainers(response.containers)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '容器の取得に失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
+export function useUpdateContainer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<UpdateContainerRequest> }) =>
+      containerService.updateContainer(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      queryClient.invalidateQueries({ queryKey: ['containers', id] })
+    },
+  })
+}
 
-  useEffect(() => {
-    fetchContainers()
-  }, [location])
+export function useDeleteContainer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => containerService.deleteContainer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] })
+    },
+  })
+}
 
-  return {
-    containers,
-    loading,
-    error,
-    refetch: fetchContainers
-  }
+export function useBulkDeleteContainers() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: BulkDeleteContainersRequest) => containerService.bulkDeleteContainers(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] })
+    },
+  })
+}
+
+export function useBulkUpdateContainersDisposedStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: BulkUpdateContainersDisposedStatusRequest) =>
+      containerService.bulkUpdateContainersDisposedStatus(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] })
+    },
+  })
 }

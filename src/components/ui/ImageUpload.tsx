@@ -13,7 +13,7 @@ interface ImageUploadProps {
 export function ImageUpload({ 
   currentImageUrl, 
   onImageChange, 
-  maxSize = 10 
+  maxSize = 20 // MB 
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
