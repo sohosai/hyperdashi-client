@@ -5,19 +5,19 @@ import {
   Button,
   Input,
   Chip,
-  // Select,
-  // SelectItem,
-  // Autocomplete,
-  // AutocompleteItem,
+  Select,
+  SelectItem,
+  Autocomplete,
+  AutocompleteItem,
   SortDescriptor,
   Selection,
 } from '@heroui/react'
-import { Search, /* Plus, */ Trash2, RotateCcw, Eye, Edit, Users, Undo, GripVertical, Package } from 'lucide-react'
-import { Item /*, Container */ } from '@/types'
+import { Search, Plus, Trash2, RotateCcw, Eye, Edit, Users, Undo, GripVertical, Package } from 'lucide-react'
+import { Item, Container } from '@/types'
 import {
   useItems,
   useUpdateItem,
-  // useCreateItem,
+  useCreateItem,
   // useBulkDeleteItems,
   useBulkUpdateItemsDisposedStatus,
   useBulkMoveToContainer,
@@ -243,8 +243,13 @@ export function ItemsList() {
     }
   }, [items])
 
+  // Extract location suggestions from current items
+  const locationSuggestions = useMemo(() => {
+    return Array.from(uniqueValues.storageLocations)
+  }, [uniqueValues.storageLocations])
+
   const updateItemMutation = useUpdateItem()
-  // const createItemMutation = useCreateItem()
+  const createItemMutation = useCreateItem()
   // const bulkDeleteMutation = useBulkDeleteItems()
   const bulkUpdateDisposedMutation = useBulkUpdateItemsDisposedStatus()
   const bulkMoveToContainerMutation = useBulkMoveToContainer()
@@ -442,6 +447,23 @@ export function ItemsList() {
     }
   }, [containers, updateItemMutation, disposeItemMutation, undisposeItemMutation])
 
+  // アイテム作成ハンドラー
+  const handleCreateItem = async (itemData: {
+    name: string
+    label_id: string
+    container_id?: string
+    storage_location?: string
+  }) => {
+    try {
+      await createItemMutation.mutateAsync({
+        ...itemData,
+        storage_type: itemData.container_id ? 'container' : 'location'
+      })
+    } catch (error) {
+      console.error('Failed to create item:', error)
+    }
+  }
+
   const renderCard = useCallback((item: Item) => (
     <div className="flex flex-col gap-2">
       <div className="font-bold text-lg">{item.name}</div>
@@ -602,9 +624,12 @@ export function ItemsList() {
         />
       </div>
 
-      <div className="py-4">
-        {/* InlineCreatorRow is temporarily commented out due to type issues */}
-        {/* TODO: Implement proper InlineCreatorRow with extraFields support */}
+      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
+        <ItemInlineCreator
+          containers={containers}
+          locationSuggestions={locationSuggestions}
+          onSave={handleCreateItem}
+        />
       </div>
 
       <BulkActionBar
@@ -619,129 +644,128 @@ export function ItemsList() {
   )
 }
 
-// Custom inline creator row for ItemsList
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// function CustomInlineCreatorRow({ containers, locationSuggestions, onSave }: {
-//   containers: Container[],
-//   locationSuggestions: string[],
-//   onSave: (value: { name: string; label_id: string; container_id?: string; storage_location?: string }) => Promise<void>
-// }) {
-//   const [isCreating, setIsCreating] = useState(false)
-//   const [name, setName] = useState('')
-//   const [labelId, setLabelId] = useState('')
-//   const [containerId, setContainerId] = useState('')
-//   const [storageLocation, setStorageLocation] = useState('')
-//   const [isSaving, setIsSaving] = useState(false)
-//
-//   const handleSave = async () => {
-//     if (name.trim() && labelId.trim()) {
-//       setIsSaving(true)
-//       await onSave({
-//         name: name.trim(),
-//         label_id: labelId.trim(),
-//         container_id: containerId || undefined,
-//         storage_location: storageLocation || undefined,
-//       })
-//       setIsSaving(false)
-//       setName('')
-//       setLabelId('')
-//       setContainerId('')
-//       setStorageLocation('')
-//       setIsCreating(false)
-//     }
-//   }
-//
-//   const handleKeyDown = (e: React.KeyboardEvent) => {
-//     if (e.key === 'Enter') {
-//       handleSave()
-//     } else if (e.key === 'Escape') {
-//       setName('')
-//       setLabelId('')
-//       setContainerId('')
-//       setStorageLocation('')
-//       setIsCreating(false)
-//     }
-//   }
-//
-//   if (isCreating) {
-//     return (
-//       <div className="flex gap-2 p-2 flex-wrap">
-//         <Input
-//           autoFocus
-//           aria-label="New item name"
-//           placeholder="Name"
-//           value={name}
-//           onValueChange={setName}
-//           onKeyDown={handleKeyDown}
-//           size="sm"
-//           className="flex-grow"
-//           disabled={isSaving}
-//         />
-//         <Input
-//           aria-label="Label ID"
-//           placeholder="Label ID"
-//           value={labelId}
-//           onValueChange={setLabelId}
-//           onKeyDown={handleKeyDown}
-//           size="sm"
-//           className="flex-grow"
-//           disabled={isSaving}
-//         />
-//         <div className="w-36">
-//           <Select
-//             aria-label="コンテナ"
-//             placeholder="コンテナ"
-//             selectedKeys={containerId ? new Set([containerId]) : new Set()}
-//             onSelectionChange={keys => setContainerId(Array.from(keys)[0] as string)}
-//             size="sm"
-//             disabled={isSaving}
-//           >
-//             {containers.map(c =>
-//               <SelectItem key={c.id}>{c.name} - <span className="text-gray-500">{c.location}</span></SelectItem>
-//             )}
-//           </Select>
-//         </div>
-//         <div className="flex-grow">
-//           <Autocomplete
-//             aria-label="保管場所"
-//             placeholder="保管場所を入力または選択"
-//             allowsCustomValue
-//             value={storageLocation}
-//             onValueChange={setStorageLocation}
-//             onKeyDown={handleKeyDown}
-//             size="sm"
-//             disabled={isSaving}
-//           >
-//             {locationSuggestions.map(loc => (
-//               <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
-//             ))}
-//           </Autocomplete>
-//         </div>
-//         <Button
-//           size="sm"
-//           color="primary"
-//           onPress={handleSave}
-//           isLoading={isSaving}
-//           disabled={!name.trim() || !labelId.trim()}
-//         >
-//           Save
-//         </Button>
-//       </div>
-//     )
-//   }
-//
-//   return (
-//     <Button
-//       variant="light"
-//       color="default"
-//       className="w-full justify-start p-2"
-//       startContent={<Plus size={16} />}
-//       onPress={() => setIsCreating(true)}
-//     >
-//       新規備品作成...
-//     </Button>
-//   )
-// }
+// アイテム用インライン作成コンポーネント
+function ItemInlineCreator({ containers, locationSuggestions, onSave }: {
+  containers: Container[],
+  locationSuggestions: string[],
+  onSave: (value: { name: string; label_id: string; container_id?: string; storage_location?: string }) => Promise<void>
+}) {
+  const [isCreating, setIsCreating] = useState(false)
+  const [name, setName] = useState('')
+  const [labelId, setLabelId] = useState('')
+  const [containerId, setContainerId] = useState('')
+  const [storageLocation, setStorageLocation] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (name.trim() && labelId.trim()) {
+      setIsSaving(true)
+      await onSave({
+        name: name.trim(),
+        label_id: labelId.trim(),
+        container_id: containerId || undefined,
+        storage_location: storageLocation || undefined,
+      })
+      setIsSaving(false)
+      setName('')
+      setLabelId('')
+      setContainerId('')
+      setStorageLocation('')
+      setIsCreating(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setName('')
+      setLabelId('')
+      setContainerId('')
+      setStorageLocation('')
+      setIsCreating(false)
+    }
+  }
+
+  if (isCreating) {
+    return (
+      <div className="flex gap-2 p-2 flex-wrap">
+        <Input
+          autoFocus
+          aria-label="New item name"
+          placeholder="名称"
+          value={name}
+          onValueChange={setName}
+          onKeyDown={handleKeyDown}
+          size="sm"
+          className="flex-grow"
+          disabled={isSaving}
+        />
+        <Input
+          aria-label="Label ID"
+          placeholder="ラベルID"
+          value={labelId}
+          onValueChange={setLabelId}
+          onKeyDown={handleKeyDown}
+          size="sm"
+          className="flex-grow"
+          disabled={isSaving}
+        />
+        <div className="w-36">
+          <Select
+            aria-label="コンテナ"
+            placeholder="コンテナ"
+            selectedKeys={containerId ? new Set([containerId]) : new Set()}
+            onSelectionChange={keys => setContainerId(Array.from(keys)[0] as string)}
+            size="sm"
+            disabled={isSaving}
+          >
+            {containers.map(c =>
+              <SelectItem key={c.id}>{c.name} - <span className="text-gray-500">{c.location}</span></SelectItem>
+            )}
+          </Select>
+        </div>
+        <div className="flex-grow">
+          <Autocomplete
+            aria-label="保管場所"
+            placeholder="保管場所を入力または選択"
+            allowsCustomValue
+            value={storageLocation}
+            onValueChange={setStorageLocation}
+            onKeyDown={handleKeyDown}
+            size="sm"
+            disabled={isSaving}
+          >
+            {locationSuggestions.map(loc => (
+              <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
+        <Button
+          size="sm"
+          color="primary"
+          onPress={handleSave}
+          isLoading={isSaving}
+          disabled={!name.trim() || !labelId.trim()}
+        >
+          保存
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <Button
+      variant="light"
+      color="default"
+      className="w-full justify-start p-2"
+      startContent={<Plus size={16} />}
+      onPress={() => setIsCreating(true)}
+    >
+      新規備品作成...
+    </Button>
+  )
+}
 
 // Sortable column item for drag-and-drop
 function SortableColumnItem({ id, label, checked, onToggle }: { id: string, label: string, checked: boolean, onToggle: () => void }) {
