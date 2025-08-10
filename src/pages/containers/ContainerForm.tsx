@@ -11,8 +11,6 @@ import {
   Switch,
   Spinner,
   Snippet,
-  Image,
-  Progress,
   AutocompleteItem,
   Autocomplete,
 } from '@heroui/react'
@@ -65,8 +63,8 @@ export function ContainerForm() {
   })
 
   const formValues = watch()
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<number>(0)
+  // const [uploading, setUploading] = useState(false)
+  // const [uploadProgress, setUploadProgress] = useState<number>(0)
 
   // Get location suggestions from all containers
   const { data: allContainersData } = useContainers()
@@ -224,7 +222,7 @@ export function ContainerForm() {
               onValueChange={v => setValue('location', v)}
             >
               {locationSuggestions.map(loc => (
-                <AutocompleteItem key={loc} value={loc}>
+                <AutocompleteItem key={loc}>
                   {loc}
                 </AutocompleteItem>
               ))}

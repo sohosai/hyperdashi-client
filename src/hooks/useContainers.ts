@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { containerService } from '@/services'
 import {
-  ContainerWithItemCount,
   CreateContainerRequest,
   UpdateContainerRequest,
   BulkDeleteContainersRequest,

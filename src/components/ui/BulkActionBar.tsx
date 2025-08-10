@@ -1,6 +1,5 @@
 import { Button, Select, SelectItem } from '@heroui/react'
-import { Trash2, X, Package, RotateCcw } from 'lucide-react'
-import React from 'react'
+import { Trash2, X, RotateCcw } from 'lucide-react'
 import { Container } from '@/types'
 
 interface BulkActionBarProps {
@@ -65,7 +64,7 @@ export function BulkActionBar({
             }}
           >
             {containers.map((container) => (
-              <SelectItem key={container.id} value={container.id}>
+              <SelectItem key={container.id}>
                 {container.name} - {container.location || '場所未設定'}
               </SelectItem>
             ))}

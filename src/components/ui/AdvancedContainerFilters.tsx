@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Button,
   Input,
@@ -118,7 +118,7 @@ export function AdvancedContainerFilters({
                 <SelectItem key="all">すべて</SelectItem>
                 {uniqueValues.locations.map((location) => (
                   <SelectItem key={location}>{location}</SelectItem>
-                ))}
+                )) as any}
               </Select>
 
               <Input

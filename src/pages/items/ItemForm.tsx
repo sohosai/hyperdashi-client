@@ -17,7 +17,7 @@ import {
 import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import { Item } from '@/types'
 import { useItem, useCreateItem, useUpdateItem, useDeleteItem, useItemSuggestions, useContainers } from '@/hooks'
-import { itemsService, idCheckService, DuplicateItem } from '@/services'
+import { idCheckService, DuplicateItem } from '@/services'
 import { ArrayInput } from '@/components/ui/ArrayInput'
 import { CableColorInput } from '@/components/ui/CableColorInput'
 import { ImageUpload } from '@/components/ui/ImageUpload'
@@ -65,7 +65,7 @@ export function ItemForm() {
   // Duplicate warning state
   const [isDuplicateId, setIsDuplicateId] = useState(false)
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
-  const [duplicateFoundIn, setDuplicateFoundIn] = useState<string[]>([])
+  // const [duplicateFoundIn, setDuplicateFoundIn] = useState<string[]>([])
   const [duplicateItems, setDuplicateItems] = useState<DuplicateItem[]>([])
 
   const {
@@ -111,7 +111,7 @@ export function ItemForm() {
       if (!formValues.label_id?.trim()) {
         setIsDuplicateId(false)
         setIsCheckingDuplicate(false)
-        setDuplicateFoundIn([])
+        // setDuplicateFoundIn([])
         setDuplicateItems([])
         return
       }
@@ -120,7 +120,7 @@ export function ItemForm() {
       if (isEdit && item && formValues.label_id === item.label_id) {
         setIsDuplicateId(false)
         setIsCheckingDuplicate(false)
-        setDuplicateFoundIn([])
+        // setDuplicateFoundIn([])
         setDuplicateItems([])
         return
       }
@@ -130,12 +130,12 @@ export function ItemForm() {
       try {
         const response = await idCheckService.checkGlobalId(formValues.label_id)
         setIsDuplicateId(response.exists)
-        setDuplicateFoundIn(response.found_in)
+        // setDuplicateFoundIn(response.found_in)
         setDuplicateItems(response.duplicates)
       } catch (error) {
         console.error('ラベルID重複チェックエラー:', error)
         setIsDuplicateId(false)
-        setDuplicateFoundIn([])
+        // setDuplicateFoundIn([])
         setDuplicateItems([])
       } finally {
         setIsCheckingDuplicate(false)
@@ -257,7 +257,7 @@ export function ItemForm() {
       // Reset duplicate warning state on success
       setIsDuplicateId(false)
       setIsCheckingDuplicate(false)
-      setDuplicateFoundIn([])
+      // setDuplicateFoundIn([])
       setDuplicateItems([])
       navigate('/items')
     } catch (error: any) {

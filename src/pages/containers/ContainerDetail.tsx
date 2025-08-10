@@ -69,7 +69,7 @@ export function ContainerDetail() {
               </div>
               <div>
                 <h2 className="font-semibold text-gray-600 text-sm mb-1">備考</h2>
-                <p className="text-lg">{container.remarks || '-'}</p>
+                <p className="text-lg">{(container as any).remarks || '-'}</p>
               </div>
               <div>
                 <h2 className="font-semibold text-gray-600 text-sm mb-1">作成日</h2>

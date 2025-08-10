@@ -23,7 +23,8 @@ export function Dashboard() {
     page: 1, 
     per_page: 1000 
   })
-  const { containers } = useContainers()
+  const { data: containersData } = useContainers()
+  const containers = containersData?.containers || []
 
   const items = itemsData?.data || []
   const loans = Array.isArray(loansData?.data) ? loansData.data : []
@@ -118,7 +119,7 @@ export function Dashboard() {
     }
 
     // コンテナのQRコードの可能性があるので確認
-    const container = containers.find(c => c.id === trimmedId)
+    const container = containers.find((c: any) => c.id === trimmedId)
     if (container) {
       stopCamera()
       // コンテナ内の備品一覧を表示（フィルタ付きで備品一覧ページに移動）

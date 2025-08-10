@@ -1,6 +1,5 @@
 import { Button } from '@heroui/react'
 import { Trash2, X, RotateCcw } from 'lucide-react'
-import React from 'react'
 
 interface ContainerBulkActionBarProps {
   selectedCount: number;

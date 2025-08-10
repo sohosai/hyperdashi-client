@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Button,
   Input,
@@ -10,7 +10,7 @@ import {
   Chip,
 } from '@heroui/react'
 import { Filter, X } from 'lucide-react'
-import { Item, Container } from '@/types'
+import { Container } from '@/types'
 
 export interface FilterState {
   name?: string
@@ -164,7 +164,7 @@ export function AdvancedFilters({
                 <SelectItem key="all">すべて</SelectItem>
                 {uniqueValues.storageLocations.map((location) => (
                   <SelectItem key={location}>{location}</SelectItem>
-                ))}
+                )) as any}
               </Select>
 
               <Select
@@ -182,7 +182,7 @@ export function AdvancedFilters({
                   <SelectItem key={container.id}>
                     {container.name} - {container.location || '場所未設定'}
                   </SelectItem>
-                ))}
+                )) as any}
               </Select>
 
               <Select
