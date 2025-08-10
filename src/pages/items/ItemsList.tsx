@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -7,8 +7,6 @@ import {
   Chip,
   Select,
   SelectItem,
-  Autocomplete,
-  AutocompleteItem,
   SortDescriptor,
   Selection,
 } from '@heroui/react'
@@ -156,7 +154,7 @@ export function ItemsList() {
   const orderedVisibleColumnKeys = useMemo(() => {
     return columnOrder.filter(key => visibleColumnKeys.includes(key))
   }, [columnOrder, visibleColumnKeys])
-  // const [showColumnModal, setShowColumnModal] = useState(false)
+  const [showColumnModal, setShowColumnModal] = useState(false)
 
   // (Removed previous defaultVisibleKeys logic, now handled in useState initializer above)
 
@@ -243,10 +241,10 @@ export function ItemsList() {
     }
   }, [items])
 
-  // Extract location suggestions from current items
-  const locationSuggestions = useMemo(() => {
-    return Array.from(uniqueValues.storageLocations)
-  }, [uniqueValues.storageLocations])
+  // Extract location suggestions from current items (currently unused)
+  // const locationSuggestions = useMemo(() => {
+  //   return Array.from(uniqueValues.storageLocations)
+  // }, [uniqueValues.storageLocations])
 
   const updateItemMutation = useUpdateItem()
   const createItemMutation = useCreateItem()
@@ -345,27 +343,31 @@ export function ItemsList() {
         );
       }
       case 'container_id': {
-        // Disable editing if storage_type is "location"
-        const isContainerEditable = item.storage_type !== "location";
         const container = containers.find(c => c.id === item.container_id)
-        if (!isContainerEditable) {
-          return (
-            <div className="flex items-center gap-2">
-              <Package size={16} className="text-gray-500" />
-              {container?.name || '-'}
-            </div>
-          );
-        }
         return (
-          <EditableCell
+          <EditableContainerCell
             value={item.container_id || ''}
-            onSave={(value) => handleUpdate(item.id, 'container_id', value)}
+            onSave={(value) => {
+              // Update container_id and storage_type based on selection
+              const updates: any = { container_id: value || null }
+              if (value) {
+                updates.storage_type = 'container'
+                updates.storage_location = null
+              } else {
+                updates.storage_type = 'location'
+              }
+              // Update multiple fields
+              Object.entries(updates).forEach(([field, val]) => {
+                handleUpdate(item.id, field as keyof Item, val)
+              })
+            }}
+            containers={containers}
           >
             <div className="flex items-center gap-2">
               <Package size={16} className="text-gray-500" />
               {container?.name || '-'}
             </div>
-          </EditableCell>
+          </EditableContainerCell>
         );
       }
       case 'remarks':
@@ -451,13 +453,11 @@ export function ItemsList() {
   const handleCreateItem = async (itemData: {
     name: string
     label_id: string
-    container_id?: string
-    storage_location?: string
   }) => {
     try {
       await createItemMutation.mutateAsync({
         ...itemData,
-        storage_type: itemData.container_id ? 'container' : 'location'
+        storage_type: 'location'
       })
     } catch (error) {
       console.error('Failed to create item:', error)
@@ -504,12 +504,12 @@ export function ItemsList() {
             size="sm"
             variant="bordered"
             aria-label="カラム設定"
-            onClick={() => console.log('Column settings')}
+            onClick={() => setShowColumnModal(true)}
           >
             カラム設定
           </Button>
         </div>
-        {false && (
+        {showColumnModal && (
           <div
             style={{
               position: 'fixed',
@@ -523,7 +523,7 @@ export function ItemsList() {
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            onClick={() => console.log('close modal')}
+            onClick={() => setShowColumnModal(false)}
           >
             <div
               style={{
@@ -537,7 +537,7 @@ export function ItemsList() {
                 overflowY: 'auto',
                 position: 'relative'
               }}
-              onClick={e => { e.stopPropagation(); console.log('modal click'); }}
+              onClick={e => e.stopPropagation()}
             >
               <h2 className="text-lg font-bold mb-2">カラム設定</h2>
               <DndContext
@@ -599,7 +599,7 @@ export function ItemsList() {
                 </SortableContext>
               </DndContext>
               <div className="flex justify-end mt-4">
-                <Button size="sm" variant="light" onClick={() => console.log('close')}>
+                <Button size="sm" variant="light" onClick={() => setShowColumnModal(false)}>
                   閉じる
                 </Button>
               </div>
@@ -626,8 +626,6 @@ export function ItemsList() {
 
       <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
         <ItemInlineCreator
-          containers={containers}
-          locationSuggestions={locationSuggestions}
           onSave={handleCreateItem}
         />
       </div>
@@ -645,16 +643,12 @@ export function ItemsList() {
 }
 
 // アイテム用インライン作成コンポーネント
-function ItemInlineCreator({ containers, locationSuggestions, onSave }: {
-  containers: Container[],
-  locationSuggestions: string[],
-  onSave: (value: { name: string; label_id: string; container_id?: string; storage_location?: string }) => Promise<void>
+function ItemInlineCreator({ onSave }: {
+  onSave: (value: { name: string; label_id: string }) => Promise<void>
 }) {
   const [isCreating, setIsCreating] = useState(false)
   const [name, setName] = useState('')
   const [labelId, setLabelId] = useState('')
-  const [containerId, setContainerId] = useState('')
-  const [storageLocation, setStorageLocation] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = async () => {
@@ -663,14 +657,10 @@ function ItemInlineCreator({ containers, locationSuggestions, onSave }: {
       await onSave({
         name: name.trim(),
         label_id: labelId.trim(),
-        container_id: containerId || undefined,
-        storage_location: storageLocation || undefined,
       })
       setIsSaving(false)
       setName('')
       setLabelId('')
-      setContainerId('')
-      setStorageLocation('')
       setIsCreating(false)
     }
   }
@@ -681,15 +671,13 @@ function ItemInlineCreator({ containers, locationSuggestions, onSave }: {
     } else if (e.key === 'Escape') {
       setName('')
       setLabelId('')
-      setContainerId('')
-      setStorageLocation('')
       setIsCreating(false)
     }
   }
 
   if (isCreating) {
     return (
-      <div className="flex gap-2 p-2 flex-wrap">
+      <div className="flex gap-2 p-2">
         <Input
           autoFocus
           aria-label="New item name"
@@ -711,36 +699,6 @@ function ItemInlineCreator({ containers, locationSuggestions, onSave }: {
           className="flex-grow"
           disabled={isSaving}
         />
-        <div className="w-36">
-          <Select
-            aria-label="コンテナ"
-            placeholder="コンテナ"
-            selectedKeys={containerId ? new Set([containerId]) : new Set()}
-            onSelectionChange={keys => setContainerId(Array.from(keys)[0] as string)}
-            size="sm"
-            disabled={isSaving}
-          >
-            {containers.map(c =>
-              <SelectItem key={c.id}>{c.name} - <span className="text-gray-500">{c.location}</span></SelectItem>
-            )}
-          </Select>
-        </div>
-        <div className="flex-grow">
-          <Autocomplete
-            aria-label="保管場所"
-            placeholder="保管場所を入力または選択"
-            allowsCustomValue
-            value={storageLocation}
-            onValueChange={setStorageLocation}
-            onKeyDown={handleKeyDown}
-            size="sm"
-            disabled={isSaving}
-          >
-            {locationSuggestions.map(loc => (
-              <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
-            ))}
-          </Autocomplete>
-        </div>
         <Button
           size="sm"
           color="primary"
@@ -764,6 +722,75 @@ function ItemInlineCreator({ containers, locationSuggestions, onSave }: {
     >
       新規備品作成...
     </Button>
+  )
+}
+
+// EditableContainerCell for selecting containers with double-click
+function EditableContainerCell({
+  value,
+  onSave,
+  containers,
+  children,
+}: {
+  value: string
+  onSave: (value: string) => void
+  containers: Container[]
+  children: React.ReactNode
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [currentValue, setCurrentValue] = useState(value)
+
+  useEffect(() => {
+    setCurrentValue(value)
+  }, [value])
+
+  const handleDoubleClick = () => setIsEditing(true)
+  
+  const handleSave = () => {
+    if (currentValue !== value) onSave(currentValue)
+    setIsEditing(false)
+  }
+  
+  // const handleKeyDown = (e: React.KeyboardEvent) => {
+  //   if (e.key === 'Enter') handleSave()
+  //   else if (e.key === 'Escape') {
+  //     setCurrentValue(value)
+  //     setIsEditing(false)
+  //   }
+  // }
+
+  if (isEditing) {
+    return (
+      <Select
+        autoFocus
+        aria-label="コンテナ選択"
+        placeholder="コンテナを選択"
+        selectedKeys={currentValue ? new Set([currentValue]) : new Set()}
+        onSelectionChange={(keys) => {
+          const selectedKey = Array.from(keys)[0] as string
+          setCurrentValue(selectedKey || '')
+        }}
+        onBlur={handleSave}
+        size="sm"
+        className="min-w-[160px]"
+      >
+        <SelectItem key="" textValue="なし">なし</SelectItem>
+        {containers.map(container => {
+          const displayText = `${container.name} - ${container.location}`
+          return (
+            <SelectItem key={container.id} textValue={displayText}>
+              {container.name} - <span className="text-gray-500">{container.location}</span>
+            </SelectItem>
+          )
+        }) as any}
+      </Select>
+    )
+  }
+
+  return (
+    <div onDoubleClick={handleDoubleClick} className="cursor-pointer w-full h-full p-2 -m-2">
+      {children}
+    </div>
   )
 }
 

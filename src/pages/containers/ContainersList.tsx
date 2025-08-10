@@ -135,7 +135,7 @@ export function ContainersList() {
     }
     return defaultColumnKeys
   })
-  // const [showColumnModal, setShowColumnModal] = useState(false)
+  const [showColumnModal, setShowColumnModal] = useState(false)
 
   const handleToggleColumn = (key: string) => {
     let next: string[]
@@ -404,12 +404,12 @@ export function ContainersList() {
             size="sm"
             variant="bordered"
             aria-label="カラム設定"
-            onClick={() => console.log('Column settings')}
+            onClick={() => setShowColumnModal(true)}
           >
             カラム設定
           </Button>
         </div>
-        {false && (
+        {showColumnModal && (
           <div
             style={{
               position: 'fixed',
@@ -423,7 +423,7 @@ export function ContainersList() {
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            onClick={() => console.log('close modal')}
+            onClick={() => setShowColumnModal(false)}
           >
             <div
               style={{
@@ -437,7 +437,7 @@ export function ContainersList() {
                 overflowY: 'auto',
                 position: 'relative'
               }}
-              onClick={e => { e.stopPropagation(); console.log('modal click'); }}
+              onClick={e => e.stopPropagation()}
             >
               <h2 className="text-lg font-bold mb-2">カラム設定</h2>
               {/* Move sensors hook to top-level to avoid conditional hook call */}
@@ -491,7 +491,7 @@ export function ContainersList() {
                   ))}
               </DndContext>
               <div className="flex justify-end mt-4">
-                <Button size="sm" variant="light" onClick={() => console.log('close')}>
+                <Button size="sm" variant="light" onClick={() => setShowColumnModal(false)}>
                   閉じる
                 </Button>
               </div>
@@ -516,7 +516,7 @@ export function ContainersList() {
         />
       </div>
 
-      <div className="py-4">
+      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
         <ContainerInlineCreatorRow
           locationSuggestions={uniqueValues.locations}
           onSave={async ({ name, location }) => {
