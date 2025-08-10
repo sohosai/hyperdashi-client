@@ -50,7 +50,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          VITE_API_BASE_URL=/api/v1
+          VITE_API_BASE_URL=https://hyperdashi-api.sohosai.com/api/v1
 
   test:
     runs-on: ubuntu-latest
