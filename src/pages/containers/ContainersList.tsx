@@ -69,7 +69,7 @@ import {
   SortDescriptor,
   Selection,
 } from '@heroui/react'
-import { Plus, Search, Package, Edit, Eye, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Search, Package, Edit, Eye, Trash2, RotateCcw, GripVertical } from 'lucide-react'
 import {
   useContainers,
   useUpdateContainer,
@@ -348,16 +348,29 @@ export function ContainersList() {
             <Button as={Link} to={`/containers/${container.id}/edit`} isIconOnly size="sm" variant="light" title="編集">
               <Edit size={16} />
             </Button>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              color="danger"
-              title={container.is_disposed ? "復元" : "廃棄"}
-              onClick={() => handleUpdateContainer(container.id, { is_disposed: !container.is_disposed })}
-            >
-              <Trash2 size={16} />
-            </Button>
+            {container.is_disposed ? (
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                color="success"
+                title="復元"
+                onClick={() => handleUpdateContainer(container.id, { is_disposed: false })}
+              >
+                <RotateCcw size={16} />
+              </Button>
+            ) : (
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                color="danger"
+                title="廃棄"
+                onClick={() => handleUpdateContainer(container.id, { is_disposed: true })}
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
           </div>
         )
       default:

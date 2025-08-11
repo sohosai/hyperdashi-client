@@ -746,11 +746,6 @@ function EditableContainerCell({
 
   const handleDoubleClick = () => setIsEditing(true)
   
-  const handleSave = () => {
-    if (currentValue !== value) onSave(currentValue)
-    setIsEditing(false)
-  }
-  
   // const handleKeyDown = (e: React.KeyboardEvent) => {
   //   if (e.key === 'Enter') handleSave()
   //   else if (e.key === 'Escape') {
@@ -768,11 +763,21 @@ function EditableContainerCell({
         selectedKeys={currentValue ? new Set([currentValue]) : new Set()}
         onSelectionChange={(keys) => {
           const selectedKey = Array.from(keys)[0] as string
-          setCurrentValue(selectedKey || '')
+          const newValue = selectedKey || ''
+          setCurrentValue(newValue)
+          // 選択時に即座に保存
+          if (newValue !== value) {
+            onSave(newValue)
+          }
+          setIsEditing(false)
         }}
-        onBlur={handleSave}
         size="sm"
         className="min-w-[160px]"
+        onClose={() => {
+          // 何も選択せずに閉じた場合は編集モードを解除
+          setIsEditing(false)
+          setCurrentValue(value)
+        }}
       >
         <SelectItem key="" textValue="なし">なし</SelectItem>
         {containers.map(container => {
