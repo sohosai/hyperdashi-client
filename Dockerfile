@@ -46,7 +46,7 @@ EXPOSE 8080
 
 # ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl --spider http://localhost:8080 || exit 1
+    CMD curl http://localhost:8080 || exit 1
 
 # Nginxを起動
 CMD ["nginx", "-g", "daemon off;"]
