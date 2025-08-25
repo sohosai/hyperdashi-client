@@ -72,8 +72,16 @@ export function ContainerForm() {
     new Set((allContainersData?.containers || []).map((c: any) => c.location).filter(Boolean))
   )
 
-  // リアルタイム重複チェック
+  // リアルタイム重複チェック（編集時のみ必要）
   useEffect(() => {
+    // 新規作成時はIDチェック不要
+    if (!isEdit) {
+      setIsDuplicateId(false)
+      setIsCheckingDuplicate(false)
+      setDuplicateItems([])
+      return
+    }
+    
     const checkDuplicate = async () => {
       if (!formValues.id?.trim()) {
         setIsDuplicateId(false)
@@ -83,7 +91,7 @@ export function ContainerForm() {
       }
       
       // 編集時で元のIDと同じ場合はチェックしない
-      if (isEdit && container && formValues.id === container.id) {
+      if (container && formValues.id === container.id) {
         setIsDuplicateId(false)
         setIsCheckingDuplicate(false)
         setDuplicateItems([])
@@ -147,9 +155,8 @@ export function ContainerForm() {
         }
         await updateContainerMutation.mutateAsync({ id: containerId, data: updateData })
       } else {
-        // 新規作成時はidを含める
+        // 新規作成時はidを含めない（サーバー側で自動生成）
         const createData = {
-          id: data.id.trim(),
           name: data.name.trim(),
           description: data.description?.trim() || undefined,
           location: data.location.trim(),
@@ -199,17 +206,21 @@ export function ContainerForm() {
             <h2 className="text-xl font-semibold">コンテナ情報</h2>
           </CardHeader>
           <CardBody className="space-y-4">
-            <Input
-              {...register('id', { required: 'ラベルIDは必須です' })}
-              label="ラベルID"
-              placeholder="例: C001"
-              errorMessage={errors.id?.message || getDuplicateMessage()}
-              isInvalid={!!errors.id || isDuplicateId}
-              color={isDuplicateId && !errors.id ? "danger" : "default"}
-              isRequired
-              value={formValues.id || ''}
-              isReadOnly={isEdit}
-            />
+            {isEdit ? (
+              <Input
+                {...register('id')}
+                label="ラベルID"
+                value={formValues.id || ''}
+                isReadOnly
+              />
+            ) : (
+              <Input
+                label="ラベルID"
+                value="自動生成"
+                isReadOnly
+                description="IDは保存時に自動的に生成されます"
+              />
+            )}
             <Input
               {...register('name', { required: 'コンテナ名は必須です' })}
               label="コンテナ名"
@@ -293,7 +304,7 @@ export function ContainerForm() {
               color="primary" 
               isLoading={createContainerMutation.isPending || updateContainerMutation.isPending} 
               startContent={<Save size={16} />}
-              isDisabled={!formValues.id?.trim() || !formValues.name?.trim() || !formValues.location?.trim() || isCheckingDuplicate}
+              isDisabled={!formValues.name?.trim() || !formValues.location?.trim() || (isEdit && isCheckingDuplicate)}
             >
               {isEdit ? '更新' : '作成'}
             </Button>

@@ -533,7 +533,7 @@ export function ContainersList() {
         <ContainerInlineCreatorRow
           locationSuggestions={uniqueValues.locations}
           onSave={async ({ name, location }) => {
-            await createContainerMutation.mutateAsync({ id: '', name, location })
+            await createContainerMutation.mutateAsync({ name, location })
           }}
         />
       </div>
@@ -573,66 +573,6 @@ function ContainerInlineCreatorRow({
       setLocation('')
       setIsCreating(false)
     }
-    
-    // EditableAutocompleteCell for grid editing with suggestions
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    // function EditableAutocompleteCell({
-    //   value,
-    //   onSave,
-    //   suggestions,
-    //   children,
-    // }: {
-    //   value: string
-    //   onSave: (value: string) => void
-    //   suggestions: string[]
-    //   children: React.ReactNode
-    // }) {
-    //   const [isEditing, setIsEditing] = useState(false)
-    //   const [currentValue, setCurrentValue] = useState(value)
-    // 
-    //   useEffect(() => {
-    //     setCurrentValue(value)
-    //   }, [value])
-    // 
-    //   const handleDoubleClick = () => setIsEditing(true)
-    //   const handleSave = () => {
-    //     if (currentValue !== value) onSave(currentValue)
-    //     setIsEditing(false)
-    //   }
-    //   const handleKeyDown = (e: React.KeyboardEvent) => {
-    //     if (e.key === 'Enter') handleSave()
-    //     else if (e.key === 'Escape') {
-    //       setCurrentValue(value)
-    //       setIsEditing(false)
-    //     }
-    //   }
-    // 
-    //   if (isEditing) {
-    //     return (
-    //       <Autocomplete
-    //         autoFocus
-    //         label="場所"
-    //         placeholder="場所"
-    //         value={currentValue}
-    //         onValueChange={setCurrentValue}
-    //         onBlur={handleSave}
-    //         onKeyDown={handleKeyDown}
-    //         size="sm"
-    //         className="min-w-[120px]"
-    //       >
-    //         {suggestions.map(loc => (
-    //           <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
-    //         ))}
-    //       </Autocomplete>
-    //     )
-    //   }
-    // 
-    //   return (
-    //     <div onDoubleClick={handleDoubleClick} className="cursor-pointer w-full h-full p-2 -m-2">
-    //       {children}
-    //     </div>
-    //   )
-    // }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
