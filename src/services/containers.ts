@@ -16,6 +16,7 @@ export interface ContainerWithItemCount extends Container {
 }
 
 export interface CreateContainerRequest {
+  id?: string
   name: string
   description?: string
   location: string

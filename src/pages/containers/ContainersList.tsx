@@ -532,8 +532,8 @@ export function ContainersList() {
       <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
         <ContainerInlineCreatorRow
           locationSuggestions={uniqueValues.locations}
-          onSave={async ({ name, location }) => {
-            await createContainerMutation.mutateAsync({ name, location })
+          onSave={async ({ id, name, location }) => {
+            await createContainerMutation.mutateAsync({ ...(id && { id }), name, location })
           }}
         />
       </div>
@@ -554,9 +554,10 @@ function ContainerInlineCreatorRow({
   onSave,
 }: {
   locationSuggestions: string[],
-  onSave: (value: { name: string; location: string }) => Promise<void>
+  onSave: (value: { id?: string; name: string; location: string }) => Promise<void>
 }) {
   const [isCreating, setIsCreating] = useState(false)
+  const [id, setId] = useState('')
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -565,10 +566,12 @@ function ContainerInlineCreatorRow({
     if (name.trim() && location.trim()) {
       setIsSaving(true)
       await onSave({
+        ...(id.trim() ? { id: id.trim() } : {}),
         name: name.trim(),
         location: location.trim(),
       })
       setIsSaving(false)
+      setId('')
       setName('')
       setLocation('')
       setIsCreating(false)
@@ -579,6 +582,7 @@ function ContainerInlineCreatorRow({
     if (e.key === 'Enter') {
       handleSave()
     } else if (e.key === 'Escape') {
+      setId('')
       setName('')
       setLocation('')
       setIsCreating(false)
@@ -588,6 +592,17 @@ function ContainerInlineCreatorRow({
   if (isCreating) {
     return (
       <div className="flex gap-2 p-2 flex-wrap">
+        <div className="w-32">
+          <Input
+            aria-label="Container ID"
+            placeholder="ID (任意)"
+            value={id}
+            onValueChange={setId}
+            onKeyDown={handleKeyDown}
+            size="sm"
+            disabled={isSaving}
+          />
+        </div>
         <Input
           autoFocus
           aria-label="New container name"
