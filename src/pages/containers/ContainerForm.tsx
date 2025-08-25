@@ -135,19 +135,27 @@ export function ContainerForm() {
   const onSubmit = async (data: ContainerFormData) => {
     try {
       setSubmitError(null)
-      const cleanedData = {
-        ...data,
-        id: data.id.trim(),
-        name: data.name.trim(),
-        description: data.description?.trim() || undefined,
-        location: data.location.trim(),
-        image_url: data.image_url?.trim() ? data.image_url.trim() : undefined,
-      }
-
+      
       if (isEdit && containerId) {
-        await updateContainerMutation.mutateAsync({ id: containerId, data: cleanedData })
+        // 編集時はidを含めない（URLパラメータで指定済み）
+        const updateData = {
+          name: data.name.trim(),
+          description: data.description?.trim() || undefined,
+          location: data.location.trim(),
+          image_url: data.image_url?.trim() ? data.image_url.trim() : undefined,
+          is_disposed: data.is_disposed,
+        }
+        await updateContainerMutation.mutateAsync({ id: containerId, data: updateData })
       } else {
-        await createContainerMutation.mutateAsync(cleanedData)
+        // 新規作成時はidを含める
+        const createData = {
+          id: data.id.trim(),
+          name: data.name.trim(),
+          description: data.description?.trim() || undefined,
+          location: data.location.trim(),
+          image_url: data.image_url?.trim() ? data.image_url.trim() : undefined,
+        }
+        await createContainerMutation.mutateAsync(createData)
       }
       navigate('/containers')
     } catch (error: any) {
