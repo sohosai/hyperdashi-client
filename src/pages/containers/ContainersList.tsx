@@ -533,7 +533,16 @@ export function ContainersList() {
         <ContainerInlineCreatorRow
           locationSuggestions={uniqueValues.locations}
           onSave={async ({ id, name, location }) => {
-            await createContainerMutation.mutateAsync({ ...(id && { id }), name, location })
+            console.log('onSave callback called with:', { id, name, location })
+            try {
+              const payload = { ...(id && { id }), name, location }
+              console.log('Calling createContainerMutation with:', payload)
+              const result = await createContainerMutation.mutateAsync(payload)
+              console.log('createContainerMutation completed:', result)
+            } catch (error) {
+              console.error('createContainerMutation failed:', error)
+              throw error // re-throw to be caught by handleSave
+            }
           }}
         />
       </div>
@@ -563,18 +572,33 @@ function ContainerInlineCreatorRow({
   const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = async () => {
+    console.log('handleSave called', { name: name.trim(), location: location.trim(), id: id.trim() })
     if (name.trim() && location.trim()) {
       setIsSaving(true)
-      await onSave({
-        ...(id.trim() ? { id: id.trim() } : {}),
-        name: name.trim(),
-        location: location.trim(),
-      })
-      setIsSaving(false)
-      setId('')
-      setName('')
-      setLocation('')
-      setIsCreating(false)
+      try {
+        console.log('Calling onSave with:', {
+          ...(id.trim() ? { id: id.trim() } : {}),
+          name: name.trim(),
+          location: location.trim(),
+        })
+        await onSave({
+          ...(id.trim() ? { id: id.trim() } : {}),
+          name: name.trim(),
+          location: location.trim(),
+        })
+        console.log('onSave completed successfully')
+        setId('')
+        setName('')
+        setLocation('')
+        setIsCreating(false)
+      } catch (error) {
+        console.error('Error saving container:', error)
+        // TODO: Display error to user
+      } finally {
+        setIsSaving(false)
+      }
+    } else {
+      console.log('Validation failed', { name: name.trim(), location: location.trim() })
     }
   }
 
@@ -633,7 +657,15 @@ function ContainerInlineCreatorRow({
         <Button
           size="sm"
           color="primary"
-          onPress={handleSave}
+          onPress={() => {
+            console.log('Save button clicked', { 
+              name: name.trim(), 
+              location: location.trim(), 
+              disabled: !name.trim() || !location.trim(),
+              isSaving 
+            })
+            handleSave()
+          }}
           isLoading={isSaving}
           disabled={!name.trim() || !location.trim()}
         >
