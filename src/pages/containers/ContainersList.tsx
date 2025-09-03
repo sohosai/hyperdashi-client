@@ -657,7 +657,8 @@ function ContainerInlineCreatorRow({
         <Button
           size="sm"
           color="primary"
-          onPress={() => {
+          type="button"
+          onClick={() => {
             console.log('Save button clicked', { 
               name: name.trim(), 
               location: location.trim(), 
@@ -681,7 +682,8 @@ function ContainerInlineCreatorRow({
       color="default"
       className="w-full justify-start p-2"
       startContent={<Plus size={16} />}
-      onPress={() => setIsCreating(true)}
+      type="button"
+      onClick={() => setIsCreating(true)}
     >
       新規コンテナ作成...
     </Button>

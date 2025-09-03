@@ -85,6 +85,11 @@ export function Layout() {
               備品追加
             </Button>
           </NavbarItem>
+          <NavbarItem className="hidden sm:flex">
+            <Button as={Link} color="primary" to="/containers/new" variant="flat" size="sm">
+              コンテナ追加
+            </Button>
+          </NavbarItem>
         </NavbarContent>
 
         <NavbarMenu>
@@ -105,16 +110,27 @@ export function Layout() {
                 <span className="text-sm text-foreground-500">接続状態:</span>
                 <ConnectionStatus />
               </div>
-              <Button 
-                as={Link} 
-                color="primary" 
-                to="/items/new" 
-                variant="flat" 
+              <Button
+                as={Link}
+                color="primary"
+                to="/items/new"
+                variant="flat"
                 size="sm"
                 className="w-full"
                 onClick={() => setIsMenuOpen(false)}
               >
                 備品追加
+              </Button>
+              <Button
+                as={Link}
+                color="primary"
+                to="/containers/new"
+                variant="flat"
+                size="sm"
+                className="w-full"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                コンテナ追加
               </Button>
             </div>
           </NavbarMenuItem>
