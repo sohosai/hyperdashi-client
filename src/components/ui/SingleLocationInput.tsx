@@ -9,6 +9,16 @@ interface SingleLocationInputProps {
   suggestions?: string[]
   isReadOnly?: boolean
   description?: string
+  /** 表示をエラー状態にする */
+  isInvalid?: boolean
+  /** エラーメッセージ */
+  errorMessage?: string
+  /** 必須入力フラグ */
+  isRequired?: boolean
+  /** サイズ指定 */
+  size?: 'sm' | 'md' | 'lg'
+  /** 入力不可状態 */
+  isDisabled?: boolean
 }
 
 export const SingleLocationInput: React.FC<SingleLocationInputProps> = ({
@@ -19,6 +29,11 @@ export const SingleLocationInput: React.FC<SingleLocationInputProps> = ({
   suggestions = [],
   isReadOnly = false,
   description,
+  isInvalid = false,
+  errorMessage,
+  isRequired = false,
+  size = 'md',
+  isDisabled = false,
 }) => {
   const [inputValue, setInputValue] = useState(value || '')
 
@@ -48,6 +63,11 @@ export const SingleLocationInput: React.FC<SingleLocationInputProps> = ({
       allowsCustomValue
       className="w-full"
       variant="bordered"
+      isInvalid={isInvalid}
+      errorMessage={errorMessage}
+      isRequired={isRequired}
+      size={size}
+      isDisabled={isDisabled}
       defaultItems={suggestions.map(s => ({ value: s, label: s }))}
     >
       {(item) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}

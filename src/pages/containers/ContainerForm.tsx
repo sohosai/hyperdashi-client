@@ -11,14 +11,13 @@ import {
   Switch,
   Spinner,
   Snippet,
-  AutocompleteItem,
-  Autocomplete,
 } from '@heroui/react'
 import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import { ContainerWithItemCount } from '@/services'
 import { useContainer, useCreateContainer, useUpdateContainer, useDeleteContainer, useContainers } from '@/hooks'
 import { idCheckService, DuplicateItem } from '@/services'
 import { ImageUpload } from '@/components/ui/ImageUpload'
+import { SingleLocationInput } from '@/components/ui/SingleLocationInput'
 
 type ContainerFormData = Omit<ContainerWithItemCount, 'created_at' | 'updated_at' | 'item_count'> & {
   // Ensure shape matches useContainer(id) response
@@ -147,9 +146,9 @@ export function ContainerForm() {
         }
         await updateContainerMutation.mutateAsync({ id: containerId, data: updateData })
       } else {
-        // 新規作成時は手動IDがあれば含める、なければサーバー側で自動生成
+        // 新規作成時は必ず手動IDを利用
         const createData = {
-          ...(data.id?.trim() ? { id: data.id.trim() } : {}),
+          id: data.id.trim(),
           name: data.name.trim(),
           description: data.description?.trim() || undefined,
           location: data.location.trim(),
@@ -200,15 +199,15 @@ export function ContainerForm() {
           </CardHeader>
           <CardBody className="space-y-4">
             <Input
-              {...register('id', isEdit ? {} : {})}
+              {...register('id', { required: 'ラベルIDは必須です' })}
               label="ラベルID"
-              placeholder={isEdit ? undefined : "例: C001 (空白で自動生成)"}
+              placeholder="例: C001"
               errorMessage={errors.id?.message || getDuplicateMessage()}
               isInvalid={!!errors.id || isDuplicateId}
-              color={isDuplicateId && !errors.id ? "danger" : "default"}
+              color={isDuplicateId && !errors.id ? 'danger' : 'default'}
               value={formValues.id || ''}
               isReadOnly={isEdit}
-              description={isEdit ? undefined : "空白の場合は自動的に生成されます"}
+              isRequired
             />
             <Input
               {...register('name', { required: 'コンテナ名は必須です' })}
@@ -217,36 +216,28 @@ export function ContainerForm() {
               errorMessage={errors.name?.message}
               isRequired
               value={formValues.name || ''}
-              onValueChange={(v) => setValue('name', v)}
             />
             <Controller
               name="location"
               control={control}
               rules={{ required: '場所は必須です' }}
               render={({ field, fieldState }) => (
-                <Autocomplete
+                <SingleLocationInput
                   label="場所"
                   placeholder="場所を入力または選択"
-                  allowsCustomValue
-                  isRequired
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  suggestions={locationSuggestions}
                   isInvalid={!!fieldState.error}
                   errorMessage={fieldState.error?.message}
-                  value={field.value || ''}
-                  onValueChange={field.onChange}
-                >
-                  {locationSuggestions.map(loc => (
-                    <AutocompleteItem key={loc}>
-                      {loc}
-                    </AutocompleteItem>
-                  ))}
-                </Autocomplete>
+                  isRequired
+                />
               )}
             />
             <Textarea
               {...register('description')}
               label="説明"
               value={formValues.description || ''}
-              onValueChange={(v) => setValue('description', v)}
             />
             <Switch
               isSelected={!!formValues.is_disposed}
@@ -295,12 +286,12 @@ export function ContainerForm() {
             <Button as={Link} to="/containers" variant="flat">
               キャンセル
             </Button>
-            <Button 
-              type="submit" 
-              color="primary" 
-              isLoading={createContainerMutation.isPending || updateContainerMutation.isPending} 
+            <Button
+              type="submit"
+              color="primary"
+              isLoading={createContainerMutation.isPending || updateContainerMutation.isPending}
               startContent={<Save size={16} />}
-              isDisabled={!formValues.name?.trim() || !formValues.location?.trim() || isCheckingDuplicate || isDuplicateId}
+              isDisabled={!formValues.id?.trim() || !formValues.name?.trim() || !formValues.location?.trim() || isCheckingDuplicate || isDuplicateId}
             >
               {isEdit ? '更新' : '作成'}
             </Button>
