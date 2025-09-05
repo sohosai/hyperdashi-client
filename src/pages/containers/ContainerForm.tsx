@@ -219,22 +219,29 @@ export function ContainerForm() {
               value={formValues.name || ''}
               onValueChange={(v) => setValue('name', v)}
             />
-            <Autocomplete
-              label="場所"
-              placeholder="場所を入力または選択"
-              allowsCustomValue
-              isRequired
-              isInvalid={!!errors.location}
-              errorMessage={errors.location?.message}
-              value={formValues.location || ''}
-              onValueChange={v => setValue('location', v)}
-            >
-              {locationSuggestions.map(loc => (
-                <AutocompleteItem key={loc}>
-                  {loc}
-                </AutocompleteItem>
-              ))}
-            </Autocomplete>
+            <Controller
+              name="location"
+              control={control}
+              rules={{ required: '場所は必須です' }}
+              render={({ field, fieldState }) => (
+                <Autocomplete
+                  label="場所"
+                  placeholder="場所を入力または選択"
+                  allowsCustomValue
+                  isRequired
+                  isInvalid={!!fieldState.error}
+                  errorMessage={fieldState.error?.message}
+                  value={field.value || ''}
+                  onValueChange={field.onChange}
+                >
+                  {locationSuggestions.map(loc => (
+                    <AutocompleteItem key={loc}>
+                      {loc}
+                    </AutocompleteItem>
+                  ))}
+                </Autocomplete>
+              )}
+            />
             <Textarea
               {...register('description')}
               label="説明"

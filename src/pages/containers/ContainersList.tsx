@@ -624,7 +624,7 @@ function ContainerInlineCreatorRow({
             onValueChange={setId}
             onKeyDown={handleKeyDown}
             size="sm"
-            disabled={isSaving}
+            isDisabled={isSaving}
           />
         </div>
         <Input
@@ -636,7 +636,7 @@ function ContainerInlineCreatorRow({
           onKeyDown={handleKeyDown}
           size="sm"
           className="flex-grow"
-          disabled={isSaving}
+          isDisabled={isSaving}
         />
         <div className="w-48">
           <Autocomplete
@@ -647,7 +647,7 @@ function ContainerInlineCreatorRow({
             onValueChange={setLocation}
             onKeyDown={handleKeyDown}
             size="sm"
-            disabled={isSaving}
+            isDisabled={isSaving}
           >
             {locationSuggestions.map(loc => (
               <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
@@ -659,16 +659,16 @@ function ContainerInlineCreatorRow({
           color="primary"
           type="button"
           onClick={() => {
-            console.log('Save button clicked', { 
-              name: name.trim(), 
-              location: location.trim(), 
+            console.log('Save button clicked', {
+              name: name.trim(),
+              location: location.trim(),
               disabled: !name.trim() || !location.trim(),
-              isSaving 
+              isSaving
             })
             handleSave()
           }}
           isLoading={isSaving}
-          disabled={!name.trim() || !location.trim()}
+          isDisabled={!name.trim() || !location.trim()}
         >
           Save
         </Button>
