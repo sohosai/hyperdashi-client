@@ -30,6 +30,7 @@ import { EditableCell } from '@/components/ui/EditableCell'
 import { BulkActionBar } from '@/components/ui/BulkActionBar'
 // import { InlineCreatorRow } from '@/components/ui/InlineCreatorRow'
 import { AdvancedFilters, FilterState } from '@/components/ui/AdvancedFilters'
+import { CableVisualization } from '@/components/ui/CableVisualization'
 
 // dnd-kit imports
 import {
@@ -414,6 +415,17 @@ export function ItemsList() {
       case 'is_disposed':
         if (item.is_disposed) return <Chip color="danger" size="sm">廃棄済み</Chip>
         return <Chip color="success" size="sm">利用可能</Chip>
+      case 'cable_color_pattern':
+        if (!item.cable_color_pattern || item.cable_color_pattern.length === 0) {
+          return <span className="text-gray-400">-</span>
+        }
+        return (
+          <CableVisualization 
+            colorNames={item.cable_color_pattern} 
+            size="sm"
+            showLabels={false}
+          />
+        )
       case 'actions':
         return (
           <div className="flex gap-1 justify-end">
