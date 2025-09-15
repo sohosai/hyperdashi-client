@@ -9,6 +9,7 @@ import {
   SelectItem,
   SortDescriptor,
   Selection,
+  Pagination,
 } from '@heroui/react'
 import { Search, Plus, Trash2, RotateCcw, Eye, Edit, Users, Undo, GripVertical, Package } from 'lucide-react'
 import { Item, Container } from '@/types'
@@ -53,9 +54,10 @@ export function ItemsList() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
-  const [page] = useState(Number(searchParams.get('page')) || 1)
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
+  const [perPage, setPerPage] = useState(Number(searchParams.get('per_page')) || 20)
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: searchParams.get('sort_by') || 'created_at',
     direction: searchParams.get('sort_order') === 'asc' ? 'ascending' : 'descending',
@@ -162,6 +164,22 @@ export function ItemsList() {
   // Selection state (ensure this is defined and not duplicated)
   const [selectionKeys, setSelectionKeys] = useState<Selection>(new Set([]))
 
+  // Update URL params when pagination/search/sort changes
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (page > 1) params.set('page', page.toString())
+    if (perPage !== 20) params.set('per_page', perPage.toString())
+    if (searchTerm) params.set('search', searchTerm)
+    if (sortDescriptor.column) params.set('sort_by', sortDescriptor.column as string)
+    if (sortDescriptor.direction) params.set('sort_order', sortDescriptor.direction === 'ascending' ? 'asc' : 'desc')
+    if (filters.status) params.set('status', filters.status)
+    if (filters.container_id) params.set('container_id', filters.container_id)
+    if (filters.storage_type) params.set('storage_type', filters.storage_type)
+    if (filters.storage_location) params.set('storage_location', filters.storage_location)
+    
+    setSearchParams(params, { replace: true })
+  }, [page, perPage, searchTerm, sortDescriptor, filters, setSearchParams])
+
   const handleToggleColumn = (key: string) => {
     let next: string[]
     if (visibleColumnKeys.includes(key)) {
@@ -191,7 +209,7 @@ export function ItemsList() {
   const queryParams = useMemo(() => {
     const params: any = {
       page,
-      per_page: 20,
+      per_page: perPage,
       search: searchTerm || undefined,
       sort_by: sortDescriptor.column as string,
       sort_order: sortDescriptor.direction === 'ascending' ? 'asc' : 'desc',
@@ -212,7 +230,7 @@ export function ItemsList() {
     }
 
     return params
-  }, [page, searchTerm, sortDescriptor, filters])
+  }, [page, perPage, searchTerm, sortDescriptor, filters])
 
   const { data, isLoading, error } = useItems(queryParams)
   let items = data?.data || []
@@ -365,7 +383,7 @@ export function ItemsList() {
             containers={containers}
           >
             <div className="flex items-center gap-2">
-              <Package size={16} className="text-gray-500" />
+              <Package size={16} className="text-gray-500 dark:text-gray-400" />
               {container?.name || '-'}
             </div>
           </EditableContainerCell>
@@ -417,7 +435,7 @@ export function ItemsList() {
         return <Chip color="success" size="sm">利用可能</Chip>
       case 'cable_color_pattern':
         if (!item.cable_color_pattern || item.cable_color_pattern.length === 0) {
-          return <span className="text-gray-400">-</span>
+          return <span className="text-gray-400 dark:text-gray-600">-</span>
         }
         return (
           <CableVisualization 
@@ -502,13 +520,22 @@ export function ItemsList() {
           placeholder="名称・ラベル・型番で検索..."
           startContent={<Search />}
           value={searchTerm}
-          onClear={() => setSearchTerm('')}
-          onValueChange={setSearchTerm}
+          onClear={() => {
+            setSearchTerm('')
+            setPage(1)
+          }}
+          onValueChange={(value) => {
+            setSearchTerm(value)
+            setPage(1)
+          }}
         />
         <div className="flex items-center gap-2">
           <AdvancedFilters
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={(newFilters) => {
+              setFilters(newFilters)
+              setPage(1)
+            }}
             containers={containers}
             uniqueValues={uniqueValues}
           />
@@ -539,7 +566,8 @@ export function ItemsList() {
           >
             <div
               style={{
-                background: 'white',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : 'white',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827',
                 borderRadius: 8,
                 boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
                 padding: 24,
@@ -620,13 +648,16 @@ export function ItemsList() {
         )}
       </div>
 
-      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
+      <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-md p-2 mb-4 transition-colors duration-200">
         <EnhancedList<Item>
           items={items}
           columns={columns}
           isLoading={isLoading}
           sortDescriptor={sortDescriptor}
-          onSortChange={setSortDescriptor}
+          onSortChange={(descriptor) => {
+            setSortDescriptor(descriptor)
+            setPage(1)
+          }}
           renderCell={renderCell}
           renderCard={renderCard}
           emptyContent={<p>備品が見つかりません</p>}
@@ -634,9 +665,48 @@ export function ItemsList() {
           selectedKeys={selectionKeys}
           onSelectionChange={setSelectionKeys}
         />
+        {data && data.total_pages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <span>
+                {data.total}件中 {(page - 1) * perPage + 1}-{Math.min(page * perPage, data.total)}件を表示
+              </span>
+              <Select
+                size="sm"
+                className="w-20"
+                aria-label="表示件数"
+                selectedKeys={new Set([perPage.toString()])}
+                onSelectionChange={(keys) => {
+                  const value = Array.from(keys)[0] as string
+                  setPerPage(Number(value))
+                  setPage(1)
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="20">20</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+                <SelectItem key="100">100</SelectItem>
+              </Select>
+              <span className="text-sm text-gray-600 dark:text-gray-400">件/ページ</span>
+            </div>
+            <Pagination
+              isCompact
+              showControls
+              showShadow
+              color="primary"
+              page={page}
+              total={data.total_pages}
+              onChange={(newPage) => {
+                setPage(newPage)
+                // Scroll to top when page changes
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
+      <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-md p-2 mb-4 transition-colors duration-200">
         <ItemInlineCreator
           onSave={handleCreateItem}
         />
@@ -825,7 +895,7 @@ function SortableColumnItem({ id, label, checked, onToggle }: { id: string, labe
   }
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="flex items-center gap-2 px-2 py-1">
-      <GripVertical size={16} className="text-gray-400" />
+      <GripVertical size={16} className="text-gray-400 dark:text-gray-600" />
       <input
         type="checkbox"
         checked={checked}

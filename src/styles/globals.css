@@ -1,3 +1,37 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 0 0 0;
+  }
+  
+  .dark {
+    --background: 17 24 39;
+    --foreground: 243 244 246;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  * {
+    @apply transition-colors duration-200;
+  }
+  
+  /* スクロールバーのダークモード対応 */
+  .dark ::-webkit-scrollbar {
+    background-color: #1f2937;
+  }
+  
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+    border-radius: 4px;
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #6b7280;
+  }
+}

@@ -75,7 +75,7 @@ export function EnhancedList<T extends { id: string }>({
       onSelectionChange={onSelectionChange}
       selectionBehavior="toggle"
       classNames={{
-        th: "sticky top-0 z-10 bg-gray-50 text-xs sm:text-sm",
+        th: "sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 text-xs sm:text-sm",
         td: "text-xs sm:text-sm",
       }}
     >

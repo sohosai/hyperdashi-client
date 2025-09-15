@@ -25,7 +25,7 @@ export function BulkActionBar({
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-      <div className="bg-background border rounded-lg shadow-lg p-3 flex items-center gap-3 max-w-screen-xl overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-3 max-w-screen-xl overflow-x-auto">
         <div className="text-sm font-semibold whitespace-nowrap">
           {selectedCount}件選択中
         </div>
