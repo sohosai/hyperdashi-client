@@ -3,6 +3,7 @@ import { Button, Card, CardBody, CardHeader, Chip, Image, Spinner, Modal, ModalC
 import { ArrowLeft, Edit, Trash2, QrCode, BarChart3 } from 'lucide-react'
 import { useItem, useDeleteItem, useContainer, useDisposeItem, useUndisposeItem } from '@/hooks'
 import { CableVisualization } from '@/components/ui/CableVisualization'
+import { ConnectionVisualization } from '@/components/ui/ConnectionVisualization'
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay'
 import { BarcodeDisplay } from '@/components/ui/BarcodeDisplay'
 
@@ -246,12 +247,11 @@ export function ItemDetail() {
                   {item.connection_names?.length ? (
                     <div>
                       <dt className="text-sm text-gray-600 mb-2">接続名称</dt>
-                      <dd className="flex flex-wrap gap-2">
-                        {item.connection_names.map((name, index) => (
-                          <Chip key={index} variant="flat" color="primary" size="sm">
-                            {name}
-                          </Chip>
-                        ))}
+                      <dd>
+                        <ConnectionVisualization
+                          connections={item.connection_names}
+                          size="md"
+                        />
                       </dd>
                     </div>
                   ) : null}

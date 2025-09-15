@@ -32,6 +32,7 @@ import { BulkActionBar } from '@/components/ui/BulkActionBar'
 // import { InlineCreatorRow } from '@/components/ui/InlineCreatorRow'
 import { AdvancedFilters, FilterState } from '@/components/ui/AdvancedFilters'
 import { CableVisualization } from '@/components/ui/CableVisualization'
+import { ConnectionVisualization } from '@/components/ui/ConnectionVisualization'
 
 // dnd-kit imports
 import {
@@ -433,6 +434,16 @@ export function ItemsList() {
       case 'is_disposed':
         if (item.is_disposed) return <Chip color="danger" size="sm">廃棄済み</Chip>
         return <Chip color="success" size="sm">利用可能</Chip>
+      case 'connection_names':
+        if (!item.connection_names || item.connection_names.length === 0) {
+          return <span className="text-gray-400 dark:text-gray-600">-</span>
+        }
+        return (
+          <ConnectionVisualization
+            connections={item.connection_names}
+            size="sm"
+          />
+        )
       case 'cable_color_pattern':
         if (!item.cable_color_pattern || item.cable_color_pattern.length === 0) {
           return <span className="text-gray-400 dark:text-gray-600">-</span>
