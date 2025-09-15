@@ -26,7 +26,7 @@ export function ArrayInput({
   const [inputValue, setInputValue] = useState('')
 
   const addItem = () => {
-    if (inputValue.trim() && !values.includes(inputValue.trim()) && values.length < maxItems) {
+    if (inputValue.trim() && values.length < maxItems) {
       onChange([...values, inputValue.trim()])
       setInputValue('')
     }
@@ -83,7 +83,7 @@ export function ArrayInput({
           color="primary"
           variant="flat"
           onPress={addItem}
-          isDisabled={isReadOnly || !inputValue.trim() || values.includes(inputValue.trim()) || values.length >= maxItems}
+          isDisabled={isReadOnly || !inputValue.trim() || values.length >= maxItems}
         >
           <Plus size={16} />
         </Button>
