@@ -81,6 +81,7 @@ import { ContainerWithItemCount } from '@/services'
 import { EnhancedList, ColumnDef } from '@/components/ui/EnhancedList'
 import { EditableCell } from '@/components/ui/EditableCell'
 import { ContainerBulkActionBar } from '@/components/ui/ContainerBulkActionBar'
+import { SingleLocationInput } from '@/components/ui/SingleLocationInput'
 
 // dnd-kit imports
 import {
@@ -554,7 +555,7 @@ function ContainerInlineCreatorRow({
   onSave,
 }: {
   locationSuggestions: string[],
-  onSave: (value: { id?: string; name: string; location: string }) => Promise<void>
+  onSave: (value: { id: string; name: string; location: string }) => Promise<void>
 }) {
   const [isCreating, setIsCreating] = useState(false)
   const [id, setId] = useState('')
@@ -600,12 +601,12 @@ function ContainerInlineCreatorRow({
         <div className="w-32">
           <Input
             aria-label="Container ID"
-            placeholder="ID (任意)"
+            placeholder="ID"
             value={id}
             onValueChange={setId}
             onKeyDown={handleKeyDown}
             size="sm"
-            disabled={isSaving}
+            isDisabled={isSaving}
           />
         </div>
         <Input
@@ -617,30 +618,25 @@ function ContainerInlineCreatorRow({
           onKeyDown={handleKeyDown}
           size="sm"
           className="flex-grow"
-          disabled={isSaving}
+          isDisabled={isSaving}
         />
         <div className="w-48">
-          <Autocomplete
+          <SingleLocationInput
             label="場所"
             placeholder="場所を入力または選択"
-            allowsCustomValue
             value={location}
-            onValueChange={setLocation}
-            onKeyDown={handleKeyDown}
+            onChange={setLocation}
+            suggestions={locationSuggestions}
             size="sm"
-            disabled={isSaving}
-          >
-            {locationSuggestions.map(loc => (
-              <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
-            ))}
-          </Autocomplete>
+            isDisabled={isSaving}
+          />
         </div>
         <Button
           size="sm"
           color="primary"
           onPress={handleSave}
           isLoading={isSaving}
-          disabled={!name.trim() || !location.trim()}
+          isDisabled={!name.trim() || !location.trim()}
         >
           Save
         </Button>
@@ -654,7 +650,8 @@ function ContainerInlineCreatorRow({
       color="default"
       className="w-full justify-start p-2"
       startContent={<Plus size={16} />}
-      onPress={() => setIsCreating(true)}
+      type="button"
+      onClick={() => setIsCreating(true)}
     >
       新規コンテナ作成...
     </Button>
