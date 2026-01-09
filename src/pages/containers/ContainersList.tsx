@@ -155,7 +155,7 @@ export function ContainersList() {
       col => col.key === 'actions' || visibleColumnKeys.includes(col.key as string)
     )
   }, [visibleColumnKeys])
-  
+
   const { data: containersData, isLoading, error } = useContainers({
     search: searchQuery,
     include_disposed: filters.status === 'disposed' || (!filters.status && true),
@@ -169,20 +169,20 @@ export function ContainersList() {
   containers = containers.filter(c => {
     // Name filter
     if (filters.name && !c.name.toLowerCase().includes(filters.name.toLowerCase())) return false
-    
+
     // Remarks filter  
     if (filters.remarks && (!(c as any).remarks || !(c as any).remarks.toLowerCase().includes(filters.remarks.toLowerCase()))) return false
-    
+
     // Status filter
     if (filters.status === 'active' && c.is_disposed) return false
     if (filters.status === 'disposed' && !c.is_disposed) return false
-    
+
     // Item count filter
     const minItemCount = filters.item_count_from ? parseInt(filters.item_count_from, 10) : undefined
     const maxItemCount = filters.item_count_to ? parseInt(filters.item_count_to, 10) : undefined
     if (minItemCount !== undefined && c.item_count < minItemCount) return false
     if (maxItemCount !== undefined && c.item_count > maxItemCount) return false
-    
+
     // Date filters
     if (filters.created_at_from) {
       const createdDate = new Date(c.created_at)
@@ -206,7 +206,7 @@ export function ContainersList() {
       filterDate.setHours(23, 59, 59, 999) // End of day
       if (updatedDate > filterDate) return false
     }
-    
+
     return true
   })
 
@@ -271,7 +271,7 @@ export function ContainersList() {
             onSave={(newValue) => handleUpdateContainer(container.id, { name: newValue })}
           >
             <div className="flex items-center gap-2">
-              <Package size={16} className="text-gray-500" />
+              <Package size={16} className="text-default-500" />
               {container.name}
             </div>
           </EditableCell>
@@ -317,9 +317,9 @@ export function ContainersList() {
         if (!container.image_url) return '-'
         return (
           <div className="flex items-center">
-            <img 
-              src={container.image_url} 
-              alt="Container" 
+            <img
+              src={container.image_url}
+              alt="Container"
               className="w-10 h-10 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => window.open(container.image_url, '_blank')}
               title="クリックで拡大表示"
@@ -382,7 +382,7 @@ export function ContainersList() {
   const renderCard = useCallback((container: ContainerWithItemCount) => (
     <div className="flex flex-col gap-2">
       <div className="font-bold text-lg">{container.name}</div>
-      <div className="text-sm text-gray-500">{container.location}</div>
+      <div className="text-sm text-default-500">{container.location}</div>
       <div>{renderCell(container, 'is_disposed')}</div>
       <div className="flex justify-end">
         {renderCell(container, 'actions')}
@@ -514,7 +514,7 @@ export function ContainersList() {
         )}
       </div>
 
-      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
+      <div className="bg-content1 border border-default-200 rounded-lg shadow-md p-2 mb-4">
         <EnhancedList<ContainerWithItemCount>
           items={containers}
           columns={columns}
@@ -530,7 +530,7 @@ export function ContainersList() {
         />
       </div>
 
-      <div className="bg-white border border-gray-300 rounded-lg shadow-md p-2 mb-4">
+      <div className="bg-content1 border border-default-200 rounded-lg shadow-md p-2 mb-4">
         <ContainerInlineCreatorRow
           locationSuggestions={uniqueValues.locations}
           onSave={async ({ id, name, location }) => {
@@ -568,7 +568,7 @@ function ContainerInlineCreatorRow({
       setIsSaving(true)
       try {
         await onSave({
-          ...(id.trim() ? { id: id.trim() } : {}),
+          id: id.trim() || '',
           name: name.trim(),
           location: location.trim(),
         })
@@ -673,7 +673,7 @@ function SortableColumnItem({ id, label, checked, onToggle, useHeroUI }: { id: s
   if (useHeroUI) {
     return (
       <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="flex items-center gap-2 px-2 py-1">
-        <GripVertical size={16} className="text-gray-400" />
+        <GripVertical size={16} className="text-default-500" />
         <Checkbox
           isSelected={checked}
           onValueChange={onToggle}
@@ -688,7 +688,7 @@ function SortableColumnItem({ id, label, checked, onToggle, useHeroUI }: { id: s
   }
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="flex items-center gap-2 px-2 py-1">
-      <GripVertical size={16} className="text-gray-400" />
+      <GripVertical size={16} className="text-default-500" />
       <input
         type="checkbox"
         checked={checked}

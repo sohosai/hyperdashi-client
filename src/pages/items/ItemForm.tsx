@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { useEffect, useState } from 'react'
 import {
@@ -15,13 +15,15 @@ import {
   Snippet,
 } from '@heroui/react'
 import { ArrowLeft, Save, Trash2 } from 'lucide-react'
-import { Item } from '@/types'
+import { Item, Tag } from '@/types'
 import { useItem, useCreateItem, useUpdateItem, useDeleteItem, useItemSuggestions, useContainers } from '@/hooks'
+import { useItemTags, useSetItemTags } from '@/hooks/useTags'
 import { idCheckService, DuplicateItem } from '@/services'
-import { ArrayInput } from '@/components/ui/ArrayInput'
+import { ConnectorInput } from '@/components/ui/ConnectorInput'
 import { CableColorInput } from '@/components/ui/CableColorInput'
 import { ImageUpload } from '@/components/ui/ImageUpload'
 import { SingleLocationInput } from '@/components/ui/SingleLocationInput'
+import { TagInput } from '@/components/ui/TagInput'
 
 type ItemFormData = Omit<Item, 'id' | 'created_at' | 'updated_at'>
 
@@ -33,40 +35,46 @@ export function ItemForm() {
 
   // Fetch item data for edit mode
   const { data: item, isLoading: isLoadingItem, error: itemError } = useItem(itemId)
-  
+
+  // Fetch tags for edit mode
+  const { data: itemTags = [] } = useItemTags(itemId)
+
   // Fetch suggestions for array fields
-  const { data: connectionSuggestions = [] } = useItemSuggestions('connection_names')
   const { data: locationSuggestions = [] } = useItemSuggestions('storage_location')
-  
+
   // Fetch containers for container selection
   const { data: containersData } = useContainers()
   const containers = containersData?.containers || []
-  
+
   // Debug logs (development only)
   if (import.meta.env.VITE_DEV_MODE === 'true') {
-    console.log('ItemForm Debug:', { 
-      id, 
-      itemId, 
-      isEdit, 
-      item, 
-      isLoadingItem, 
-      itemError 
+    console.log('ItemForm Debug:', {
+      id,
+      itemId,
+      isEdit,
+      item,
+      isLoadingItem,
+      itemError
     })
   }
-  
+
   // Mutations
   const createItemMutation = useCreateItem()
   const updateItemMutation = useUpdateItem()
   const deleteItemMutation = useDeleteItem()
-  
+  const setItemTagsMutation = useSetItemTags()
+
   // Error state
   const [submitError, setSubmitError] = useState<string | null>(null)
-  
+
   // Duplicate warning state
   const [isDuplicateId, setIsDuplicateId] = useState(false)
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
   // const [duplicateFoundIn, setDuplicateFoundIn] = useState<string[]>([])
   const [duplicateItems, setDuplicateItems] = useState<DuplicateItem[]>([])
+
+  // Tag state
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([])
 
   const {
     register,
@@ -99,12 +107,12 @@ export function ItemForm() {
 
   // Get current form values
   const formValues = watch()
-  
+
   // Debug: Watch form values (development only)
   if (import.meta.env.VITE_DEV_MODE === 'true') {
     console.log('Form values:', formValues)
   }
-  
+
   // リアルタイム重複チェック
   useEffect(() => {
     const checkDuplicate = async () => {
@@ -115,7 +123,7 @@ export function ItemForm() {
         setDuplicateItems([])
         return
       }
-      
+
       // 編集時で元のIDと同じ場合はチェックしない
       if (isEdit && item && formValues.label_id === item.label_id) {
         setIsDuplicateId(false)
@@ -124,9 +132,9 @@ export function ItemForm() {
         setDuplicateItems([])
         return
       }
-      
+
       setIsCheckingDuplicate(true)
-      
+
       try {
         const response = await idCheckService.checkGlobalId(formValues.label_id)
         setIsDuplicateId(response.exists)
@@ -141,20 +149,20 @@ export function ItemForm() {
         setIsCheckingDuplicate(false)
       }
     }
-    
+
     const timeoutId = setTimeout(checkDuplicate, 300) // 300ms のデバウンス
     return () => clearTimeout(timeoutId)
   }, [formValues.label_id, isEdit, item])
-  
+
   // 重複メッセージを生成
   const getDuplicateMessage = () => {
     if (!isDuplicateId || duplicateItems.length === 0) return undefined
-    
+
     const itemNames = duplicateItems.map(item => {
       const typeLabel = item.item_type === 'container' ? 'コンテナ' : '備品'
       return `${typeLabel}: ${item.name}`
     })
-    
+
     return `このIDは既に使用されています - ${itemNames.join(', ')}`
   }
 
@@ -164,7 +172,7 @@ export function ItemForm() {
       if (import.meta.env.VITE_DEV_MODE === 'true') {
         console.log('Setting form values with item data:', item)
       }
-      
+
       // Set values individually to ensure they're applied
       setValue('name', item.name || '')
       setValue('label_id', item.label_id || '')
@@ -182,33 +190,40 @@ export function ItemForm() {
       setValue('image_url', item.image_url || '')
       setValue('container_id', item.container_id || '')
       setValue('storage_type', item.storage_type || 'location')
-      
+
       if (import.meta.env.VITE_DEV_MODE === 'true') {
         console.log('Form values set individually')
       }
     }
   }, [item, isEdit, setValue])
 
+  // Set tags when data loaded
+  useEffect(() => {
+    if (isEdit && itemTags) {
+      setSelectedTags(itemTags)
+    }
+  }, [itemTags, isEdit])
+
   const onSubmit = async (data: ItemFormData) => {
     try {
       setSubmitError(null)
-      
+
       // Validate required fields
       if (!data.name?.trim()) {
         setSubmitError('備品名は必須です。')
         return
       }
-      
+
       if (!data.label_id?.trim()) {
         setSubmitError('ラベルIDは必須です。')
         return
       }
-      
+
       if (data.storage_type === 'container' && !data.container_id?.trim()) {
         setSubmitError('コンテナで保管する場合、コンテナの選択は必須です。')
         return
       }
-      
+
       // Clean and transform data for API
       const cleanedData = {
         // Required fields - ensure they are present
@@ -236,13 +251,15 @@ export function ItemForm() {
         storage_type: data.storage_type || 'location',
         container_id: data.storage_type === 'container' ? data.container_id?.trim() || undefined : undefined,
       }
-      
+
       // Debug logging
       if (import.meta.env.VITE_DEV_MODE === 'true') {
         console.log('Original form data:', data)
         console.log('Cleaned data for API:', cleanedData)
       }
-      
+
+      let targetItemId = itemId
+
       if (isEdit && itemId) {
         await updateItemMutation.mutateAsync({ id: itemId, data: cleanedData })
       } else {
@@ -250,10 +267,19 @@ export function ItemForm() {
         const createData = Object.fromEntries(
           Object.entries(cleanedData).filter(([_, value]) => value !== undefined)
         )
-        
-        await createItemMutation.mutateAsync(createData as Omit<Item, 'id' | 'created_at' | 'updated_at'>)
+
+        const newItem = await createItemMutation.mutateAsync(createData as Omit<Item, 'id' | 'created_at' | 'updated_at'>)
+        targetItemId = newItem.id
       }
-      
+
+      // Save tags
+      if (targetItemId) {
+        await setItemTagsMutation.mutateAsync({
+          itemId: targetItemId,
+          tagIds: selectedTags.map(t => t.id)
+        })
+      }
+
       // Reset duplicate warning state on success
       setIsDuplicateId(false)
       setIsCheckingDuplicate(false)
@@ -262,9 +288,9 @@ export function ItemForm() {
       navigate('/items')
     } catch (error: any) {
       console.error('Form submission error:', error)
-      
+
       let errorMessage = '保存に失敗しました。'
-      
+
       if (error?.response?.status === 400) {
         errorMessage = 'リクエストデータに問題があります。入力内容を確認してください。'
         if (error.response?.data?.message) {
@@ -279,7 +305,7 @@ export function ItemForm() {
       } else if (error instanceof Error) {
         errorMessage = error.message
       }
-      
+
       setSubmitError(errorMessage)
     }
   }
@@ -311,11 +337,10 @@ export function ItemForm() {
     return (
       <div>
         <Button
-          as={Link}
-          to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
           className="mb-4"
+          onPress={() => navigate('/items')}
         >
           一覧に戻る
         </Button>
@@ -335,11 +360,10 @@ export function ItemForm() {
     return (
       <div>
         <Button
-          as={Link}
-          to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
           className="mb-4"
+          onPress={() => navigate('/items')}
         >
           一覧に戻る
         </Button>
@@ -358,10 +382,9 @@ export function ItemForm() {
     <div>
       <div className="flex items-center gap-4 mb-6">
         <Button
-          as={Link}
-          to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
+          onPress={() => navigate(-1)}
         >
           一覧に戻る
         </Button>
@@ -402,8 +425,17 @@ export function ItemForm() {
                 placeholder="例: MacBook Pro 13inch"
                 value={formValues.model_number || ''}
               />
+
+              <div className="sm:col-span-2">
+                <TagInput
+                  selectedTags={selectedTags}
+                  onChange={setSelectedTags}
+                  placeholder="タグを追加..."
+                />
+              </div>
+
               <Input
-                {...register('purchase_year', { 
+                {...register('purchase_year', {
                   valueAsNumber: true,
                   setValueAs: (value) => value === '' ? undefined : Number(value)
                 })}
@@ -413,7 +445,7 @@ export function ItemForm() {
                 value={formValues.purchase_year?.toString() || ''}
               />
               <Input
-                {...register('purchase_amount', { 
+                {...register('purchase_amount', {
                   valueAsNumber: true,
                   setValueAs: (value) => value === '' ? undefined : Number(value)
                 })}
@@ -424,7 +456,7 @@ export function ItemForm() {
                 value={formValues.purchase_amount?.toString() || ''}
               />
               <Input
-                {...register('durability_years', { 
+                {...register('durability_years', {
                   valueAsNumber: true,
                   setValueAs: (value) => value === '' ? undefined : Number(value)
                 })}
@@ -464,11 +496,11 @@ export function ItemForm() {
                   />
                 )}
               />
-              
+
               {/* Storage Type Toggle */}
               <div className="sm:col-span-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700">保管方法</label>
+                  <label className="text-sm font-medium text-default-600">保管方法</label>
                   <Switch
                     isSelected={formValues.storage_type === 'container'}
                     onValueChange={(isSelected) => {
@@ -490,7 +522,7 @@ export function ItemForm() {
                   </Switch>
                 </div>
               </div>
-              
+
               {/* Container Selection - only show when storage_type is 'container' */}
               {formValues.storage_type === 'container' && (
                 <div className="sm:col-span-2">
@@ -502,13 +534,13 @@ export function ItemForm() {
                     onSelectionChange={(keys) => {
                       const selectedKeys = Array.from(keys)
                       const value = selectedKeys[0] as string || ''
-                      
+
                       if (import.meta.env.VITE_DEV_MODE === 'true') {
                         console.log('Container selection changed:', { keys, selectedKeys, value, containers })
                       }
-                      
+
                       setValue('container_id', value)
-                      
+
                       // コンテナ選択時に場所を自動設定
                       if (value) {
                         const selectedContainer = containers.find(c => c.id === value)
@@ -530,13 +562,13 @@ export function ItemForm() {
                         key={container.id}
                         textValue={`${container.name} - ${container.location}`}
                       >
-                        {container.name} - <span className="text-gray-500">{container.location}</span>
+                        {container.name} - <span className="text-default-500">{container.location}</span>
                       </SelectItem>
                     ))}
                   </Select>
                 </div>
               )}
-              
+
               <div className="flex flex-col gap-4">
                 <Controller
                   name="is_depreciation_target"
@@ -594,7 +626,7 @@ export function ItemForm() {
                 name="connection_names"
                 control={control}
                 render={({ field }) => (
-                  <ArrayInput
+                  <ConnectorInput
                     label="接続端子"
                     placeholder="例: HDMI、USB-C"
                     values={formValues.connection_names || []}
@@ -603,11 +635,10 @@ export function ItemForm() {
                       setValue('connection_names', values)
                     }}
                     maxItems={20}
-                    suggestions={connectionSuggestions}
                   />
                 )}
               />
-              
+
               <Controller
                 name="cable_color_pattern"
                 control={control}
@@ -683,12 +714,11 @@ export function ItemForm() {
           )}
           <div className="flex flex-col sm:flex-row justify-end gap-4 w-full">
             <Button
-              as={Link}
-              to="/items"
               variant="flat"
-              isDisabled={createItemMutation.isPending || updateItemMutation.isPending}
+              isDisabled={createItemMutation.isPending || updateItemMutation.isPending || setItemTagsMutation.isPending}
               size="sm"
               className="text-xs sm:text-sm order-2 sm:order-1 w-full sm:w-auto"
+              onPress={() => navigate(-1)}
             >
               キャンセル
             </Button>
@@ -696,7 +726,7 @@ export function ItemForm() {
               type="submit"
               color="primary"
               startContent={<Save size={16} />}
-              isLoading={createItemMutation.isPending || updateItemMutation.isPending}
+              isLoading={createItemMutation.isPending || updateItemMutation.isPending || setItemTagsMutation.isPending}
               size="sm"
               className="text-xs sm:text-sm order-1 sm:order-2 w-full sm:w-auto"
               isDisabled={!formValues.name?.trim() || !formValues.label_id?.trim() || isCheckingDuplicate}

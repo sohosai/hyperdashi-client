@@ -13,12 +13,12 @@ import {
 } from '@heroui/react'
 import { useState } from 'react'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
- 
+
 export function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
- 
+
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)
   }
@@ -33,9 +33,9 @@ export function Layout() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Navbar 
-        maxWidth="full" 
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+      <Navbar
+        maxWidth="full"
         isBordered
         isMenuOpen={isMenuOpen}
         onMenuOpenChange={setIsMenuOpen}
@@ -47,10 +47,10 @@ export function Layout() {
           />
           <NavbarBrand>
             <Link to="/" className="flex items-center gap-2">
-              <img 
-                src="/hyperdashi.svg" 
-                alt="HyperDashi" 
-                className="h-8 w-8" 
+              <img
+                src="/hyperdashi.svg"
+                alt="HyperDashi"
+                className="h-8 w-8"
               />
               <span className="font-bold text-lg sm:text-xl text-primary">HyperDashi</span>
             </Link>

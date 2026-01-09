@@ -34,7 +34,7 @@ export function LoansList() {
     column: 'loan_date',
     direction: 'descending',
   })
-  
+
   const returnItemMutation = useReturnItem()
 
   const { data, isLoading, error } = useLoans({
@@ -46,24 +46,24 @@ export function LoansList() {
 
   // APIフィルタリングが効かない場合に備えて、クライアント側でも追加フィルタリング
   const allLoans = data?.data || []
-  const filteredLoans = filterStatus === 'all' 
+  const filteredLoans = filterStatus === 'all'
     ? allLoans
     : filterStatus === 'active'
-    ? allLoans.filter(loan => !loan.return_date)
-    : allLoans.filter(loan => !!loan.return_date)
+      ? allLoans.filter(loan => !loan.return_date)
+      : allLoans.filter(loan => !!loan.return_date)
 
   // ソート処理
   const sortedLoans = [...filteredLoans].sort((a, b) => {
     const { column, direction } = sortDescriptor
     let aValue: any = a[column as keyof Loan]
     let bValue: any = b[column as keyof Loan]
-    
+
     // アイテム名でソートする場合
     if (column === 'item_name') {
       aValue = a.item?.name || ''
       bValue = b.item?.name || ''
     }
-    
+
     // 日付の場合
     if (column === 'loan_date' || column === 'return_date' || column === 'created_at' || column === 'updated_at') {
       if (!aValue && !bValue) return 0
@@ -73,18 +73,18 @@ export function LoansList() {
       bValue = new Date(bValue).getTime()
       return direction === 'ascending' ? aValue - bValue : bValue - aValue
     }
-    
+
     // 文字列の場合
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       aValue = aValue.toLowerCase()
       bValue = bValue.toLowerCase()
     }
-    
+
     // 数値の場合
     if (typeof aValue === 'number' && typeof bValue === 'number') {
       return direction === 'ascending' ? aValue - bValue : bValue - aValue
     }
-    
+
     // 文字列比較
     if (aValue < bValue) return direction === 'ascending' ? -1 : 1
     if (aValue > bValue) return direction === 'ascending' ? 1 : -1
@@ -205,6 +205,15 @@ export function LoansList() {
         </Button>
       </div>
 
+      {/* 貸出方法の説明 */}
+      <Card className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <CardBody className="py-3">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            💡 <strong>新規貸出の方法:</strong> 備品一覧画面で貸し出したい備品の「貸出」ボタンをクリックしてください。
+          </p>
+        </CardBody>
+      </Card>
+
       <Card className="mb-6">
         <CardBody>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
@@ -275,8 +284,8 @@ export function LoansList() {
           >
             <TableHeader columns={columns}>
               {(column) => (
-                <TableColumn 
-                  key={column.key} 
+                <TableColumn
+                  key={column.key}
                   align={column.key === 'actions' ? 'center' : 'start'}
                   allowsSorting={column.sortable}
                   className="text-xs sm:text-sm"

@@ -15,13 +15,13 @@ export function Dashboard() {
   const qrScannerElementId = 'qr-scanner-container'
 
   // データ取得
-  const { data: itemsData, isLoading: isLoadingItems } = useItems({ 
-    page: 1, 
-    per_page: 1000 
+  const { data: itemsData, isLoading: isLoadingItems } = useItems({
+    page: 1,
+    per_page: 1000
   })
-  const { data: loansData, isLoading: isLoadingLoans } = useLoans({ 
-    page: 1, 
-    per_page: 1000 
+  const { data: loansData, isLoading: isLoadingLoans } = useLoans({
+    page: 1,
+    per_page: 1000
   })
   const { data: containersData } = useContainers()
   const containers = containersData?.containers || []
@@ -76,7 +76,7 @@ export function Dashboard() {
   // カメラ停止（Html5Qrcode用）
   const stopCamera = useCallback(() => {
     console.log('Html5Qrcode スキャナー停止処理開始')
-    
+
     // Html5Qrcodeを停止
     if (html5QrCodeRef.current) {
       html5QrCodeRef.current.stop().then(() => {
@@ -94,7 +94,7 @@ export function Dashboard() {
         }
       })
     }
-    
+
     setIsScanning(false)
     console.log('Html5Qrcode 停止処理完了')
   }, [])
@@ -151,13 +151,13 @@ export function Dashboard() {
       if (!html5QrCodeRef.current) {
         html5QrCodeRef.current = new Html5Qrcode(qrScannerElementId)
       }
-      
+
       // スキャン設定
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 }
       }
-      
+
       // コールバック関数
       const qrCodeSuccessCallback = (decodedText: string, decodedResult: any) => {
         console.log('コード読み取り成功:', {
@@ -166,11 +166,11 @@ export function Dashboard() {
         })
         handleCodeDetected(decodedText)
       }
-      
+
       const qrCodeErrorCallback = () => {
         // エラーは静かに無視してスキャンを継続
       }
-      
+
       // カメラスキャンを開始（後面カメラ優先）
       try {
         await html5QrCodeRef.current.start(
@@ -180,7 +180,7 @@ export function Dashboard() {
           qrCodeErrorCallback
         )
         console.log('Html5Qrcode スキャン開始成功')
-        
+
         // スキャナー開始後、スタイルを調整
         setTimeout(() => {
           const scanRegion = document.querySelector(`#${qrScannerElementId} > div`) as HTMLElement
@@ -200,7 +200,7 @@ export function Dashboard() {
             qrCodeErrorCallback
           )
           console.log('Html5Qrcode スキャン開始成功 (前面カメラ)')
-          
+
           // スキャナー開始後、スタイルを調整
           setTimeout(() => {
             const scanRegion = document.querySelector(`#${qrScannerElementId} > div`) as HTMLElement
@@ -217,9 +217,9 @@ export function Dashboard() {
 
     } catch (error) {
       console.error('カメラの起動に失敗しました:', error)
-      
+
       let errorMessage = 'カメラの起動に失敗しました。'
-      
+
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
           errorMessage = 'カメラのアクセス許可が拒否されました。ブラウザの設定でカメラを許可してください。'
@@ -231,7 +231,7 @@ export function Dashboard() {
           errorMessage += ` エラー: ${error.message}`
         }
       }
-      
+
       setSearchError(errorMessage)
       setIsScanning(false)
     }
@@ -255,17 +255,17 @@ export function Dashboard() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-8">
-        <img 
-          src="/hyperdashi.svg" 
-          alt="HyperDashi" 
-          className="h-16 w-16" 
+        <img
+          src="/hyperdashi.svg"
+          alt="HyperDashi"
+          className="h-16 w-16"
         />
         <div>
           <h1 className="text-3xl font-bold">HyperDashi</h1>
           <p className="text-gray-600">物品管理システム</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         {stats.map((stat, index) => (
           <Card key={index} className="shadow-sm">
@@ -286,28 +286,28 @@ export function Dashboard() {
             <div className="space-y-3">
               <Link
                 to="/items/new"
-                className="block p-3 sm:p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                className="block p-3 sm:p-4 rounded-lg border border-default-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
               >
                 <h3 className="text-sm sm:text-base font-medium">新規備品登録</h3>
-                <p className="text-xs sm:text-sm text-gray-600">新しい備品を登録します</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">新しい備品を登録します</p>
               </Link>
               <Link
                 to="/items"
-                className="block p-3 sm:p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                className="block p-3 sm:p-4 rounded-lg border border-default-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
               >
                 <h3 className="text-sm sm:text-base font-medium">備品一覧</h3>
-                <p className="text-xs sm:text-sm text-gray-600">すべての備品を確認・管理します</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">すべての備品を確認・管理します</p>
               </Link>
               <Link
                 to="/loans"
-                className="block p-3 sm:p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                className="block p-3 sm:p-4 rounded-lg border border-default-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
               >
                 <h3 className="text-sm sm:text-base font-medium">貸出管理</h3>
-                <p className="text-xs sm:text-sm text-gray-600">貸出履歴と返却管理を行います</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">貸出履歴と返却管理を行います</p>
               </Link>
               <button
                 onClick={onOpen}
-                className="block w-full p-4 rounded-lg border hover:bg-gray-50 transition-colors text-left"
+                className="block w-full p-4 rounded-lg border border-default-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors text-left"
               >
                 <h3 className="font-medium flex items-center gap-2">
                   <QrCode size={20} />
@@ -344,8 +344,8 @@ export function Dashboard() {
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Chip 
-                        color={loan.return_date ? 'success' : 'warning'} 
+                      <Chip
+                        color={loan.return_date ? 'success' : 'warning'}
                         size="sm"
                         variant="flat"
                       >
@@ -416,9 +416,9 @@ export function Dashboard() {
                         </Button>
                       )}
                     </div>
-                    
+
                     {/* html5-qrcode用のコンテナ */}
-                    <div 
+                    <div
                       className="relative"
                       style={{
                         minHeight: isScanning ? '300px' : '0'
@@ -426,9 +426,8 @@ export function Dashboard() {
                     >
                       <div
                         id={qrScannerElementId}
-                        className={`w-full ${
-                          isScanning ? 'block' : 'hidden'
-                        }`}
+                        className={`w-full ${isScanning ? 'block' : 'hidden'
+                          }`}
                         style={{
                           position: 'relative',
                           width: '100%',

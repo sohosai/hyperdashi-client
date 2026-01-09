@@ -20,7 +20,7 @@ import {
   Input,
   Chip,
 } from '@heroui/react'
-import { Plus, Edit, Trash2, Palette } from 'lucide-react'
+import { Plus, Edit, Trash2, Palette, Hash } from 'lucide-react'
 import { useCableColors, useCreateCableColor, useUpdateCableColor, useDeleteCableColor } from '@/hooks/useCableColors'
 import { CableColor } from '@/types'
 import { useForm } from 'react-hook-form'
@@ -34,10 +34,10 @@ export function CableColorsList() {
   const [page, setPage] = useState(1)
   const [editingColor, setEditingColor] = useState<CableColor | null>(null)
   const [deletingColor, setDeletingColor] = useState<CableColor | null>(null)
-  
+
   const { isOpen: isFormOpen, onOpen: onFormOpen, onOpenChange: onFormOpenChange } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure()
-  
+
   const { data, isLoading, error } = useCableColors({ page, per_page: 20 })
   const createMutation = useCreateCableColor()
   const updateMutation = useUpdateCableColor()
@@ -142,7 +142,6 @@ export function CableColorsList() {
         <CardBody className="p-0 overflow-x-auto">
           <Table
             aria-label="ケーブル色一覧"
-            removeWrapper
             bottomContent={
               totalPages > 1 && (
                 <div className="flex w-full justify-center">
@@ -176,11 +175,11 @@ export function CableColorsList() {
                 <TableRow key={color.id}>
                   <TableCell className="text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <div 
-                        className="w-8 h-8 rounded border-2 border-gray-300"
+                      <div
+                        className="w-8 h-8 rounded border-2 border-default-300"
                         style={{ backgroundColor: color.hex_code }}
                       />
-                      <Palette size={16} className="text-gray-400" />
+                      <Palette size={16} className="text-default-400" />
                     </div>
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
@@ -192,7 +191,7 @@ export function CableColorsList() {
                     </Chip>
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-default-500">
                       {new Date(color.created_at).toLocaleDateString('ja-JP')}
                     </span>
                   </TableCell>
@@ -237,7 +236,7 @@ export function CableColorsList() {
               <ModalBody>
                 <div className="space-y-4">
                   <Input
-                    {...register('name', { 
+                    {...register('name', {
                       required: '色名は必須です',
                       maxLength: { value: 50, message: '色名は50文字以内で入力してください' }
                     })}
@@ -247,30 +246,40 @@ export function CableColorsList() {
                     isInvalid={!!errors.name}
                     isRequired
                   />
-                  
+
                   <div className="space-y-2">
-                    <Input
-                      {...register('hex_code', { 
-                        required: 'カラーコードは必須です',
-                        pattern: {
-                          value: /^#[0-9A-Fa-f]{6}$/,
-                          message: 'カラーコードは#から始まる6桁の16進数で入力してください'
-                        }
-                      })}
-                      label="カラーコード"
-                      placeholder="#000000"
-                      errorMessage={errors.hex_code?.message}
-                      isInvalid={!!errors.hex_code}
-                      isRequired
-                    />
-                    
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-600">プレビュー:</span>
-                      <div 
-                        className="w-12 h-12 rounded border-2 border-gray-300"
-                        style={{ backgroundColor: watchedHexCode }}
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div
+                          className="w-10 h-10 rounded-lg border-2 border-default-300 cursor-pointer shadow-inner overflow-hidden"
+                          style={{ backgroundColor: watchedHexCode }}
+                          onClick={() => document.getElementById('color-picker-input')?.click()}
+                        />
+                        <input
+                          id="color-picker-input"
+                          type="color"
+                          value={watchedHexCode}
+                          onChange={(e) => setValue('hex_code', e.target.value)}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                      </div>
+
+                      <Input
+                        {...register('hex_code', {
+                          required: 'カラーコードは必須です',
+                          pattern: {
+                            value: /^#[0-9A-Fa-f]{6}$/,
+                            message: 'カラーコードは#から始まる6桁の16進数で入力してください'
+                          }
+                        })}
+                        label="カラーコード"
+                        placeholder="#000000"
+                        errorMessage={errors.hex_code?.message}
+                        isInvalid={!!errors.hex_code}
+                        isRequired
+                        startContent={<Hash size={14} className="text-default-400" />}
+                        className="flex-1"
                       />
-                      <span className="text-sm font-mono">{watchedHexCode}</span>
                     </div>
                   </div>
                 </div>
@@ -279,8 +288,8 @@ export function CableColorsList() {
                 <Button variant="light" onPress={onClose}>
                   キャンセル
                 </Button>
-                <Button 
-                  color="primary" 
+                <Button
+                  color="primary"
                   type="submit"
                   isLoading={createMutation.isPending || updateMutation.isPending}
                 >
@@ -304,14 +313,14 @@ export function CableColorsList() {
                 <p>
                   「<strong>{deletingColor?.name}</strong>」を削除しますか？
                 </p>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div 
-                    className="w-8 h-8 rounded border-2 border-gray-300"
+                <div className="flex items-center gap-3 p-3 bg-content2 rounded-lg">
+                  <div
+                    className="w-8 h-8 rounded border-2 border-default-300"
                     style={{ backgroundColor: deletingColor?.hex_code }}
                   />
                   <span className="text-sm">{deletingColor?.hex_code}</span>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-default-500">
                   この操作は取り消すことができません。
                 </p>
               </ModalBody>
@@ -319,8 +328,8 @@ export function CableColorsList() {
                 <Button variant="light" onPress={onClose}>
                   キャンセル
                 </Button>
-                <Button 
-                  color="danger" 
+                <Button
+                  color="danger"
                   onPress={handleDelete}
                   isLoading={deleteMutation.isPending}
                 >

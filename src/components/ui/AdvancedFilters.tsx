@@ -70,7 +70,12 @@ export function AdvancedFilters({
 
   return (
     <div className="flex items-center gap-2">
-      <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
+      <Popover
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        placement="bottom-start"
+        shouldCloseOnScroll={false}
+      >
         <PopoverTrigger>
           <Button
             variant="bordered"
@@ -310,7 +315,7 @@ export function AdvancedFilters({
         <div className="flex flex-wrap gap-1">
           {Object.entries(filters).map(([key, value]) => {
             if (!value || value === '') return null
-            
+
             const getFilterLabel = (key: string, value: any) => {
               switch (key) {
                 case 'status':

@@ -68,6 +68,24 @@ export interface CableColor {
   updated_at: string
 }
 
+export interface Connector {
+  id: number
+  name: string
+  gender?: 'male' | 'female' | 'none'
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Tag {
+  id: number
+  name: string
+  color: string
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ApiError {
   message: string
   status: number

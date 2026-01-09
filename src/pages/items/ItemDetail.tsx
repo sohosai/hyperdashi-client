@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { Button, Card, CardBody, CardHeader, Chip, Image, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Tabs, Tab } from '@heroui/react'
 import { ArrowLeft, Edit, Trash2, QrCode, BarChart3 } from 'lucide-react'
 import { useItem, useDeleteItem, useContainer, useDisposeItem, useUndisposeItem } from '@/hooks'
@@ -11,13 +11,13 @@ export function ItemDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const itemId = id || ''
-  
+
   const { data: item, isLoading, error } = useItem(itemId)
   const deleteItemMutation = useDeleteItem()
   const disposeItemMutation = useDisposeItem()
   const undisposeItemMutation = useUndisposeItem()
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
-  
+
   // Fetch container information if item is stored in a container
   const { data: container, isLoading: isContainerLoading } = useContainer(
     item?.storage_type === 'container' && item.container_id ? item.container_id : ''
@@ -35,11 +35,10 @@ export function ItemDetail() {
     return (
       <div>
         <Button
-          as={Link}
-          to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
           className="mb-4"
+          onPress={() => navigate('/items')}
         >
           一覧に戻る
         </Button>
@@ -58,17 +57,16 @@ export function ItemDetail() {
     return (
       <div>
         <Button
-          as={Link}
-          to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
           className="mb-4"
+          onPress={() => navigate('/items')}
         >
           一覧に戻る
         </Button>
         <Card>
           <CardBody>
-            <p className="text-center text-gray-500">備品が見つかりません</p>
+            <p className="text-center text-default-500">備品が見つかりません</p>
           </CardBody>
         </Card>
       </div>
@@ -79,11 +77,10 @@ export function ItemDetail() {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <Button
-          as={Link}
-          to="/items"
           variant="light"
           startContent={<ArrowLeft size={20} />}
           size="sm"
+          onPress={() => navigate(-1)}
         >
           一覧に戻る
         </Button>
@@ -146,40 +143,40 @@ export function ItemDetail() {
             <CardBody>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-gray-600">ラベルID</dt>
+                  <dt className="text-sm text-default-500">ラベルID</dt>
                   <dd className="font-medium">{item.label_id}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">型番</dt>
+                  <dt className="text-sm text-default-500">型番</dt>
                   <dd className="font-medium">{item.model_number || '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">購入年</dt>
+                  <dt className="text-sm text-default-500">購入年</dt>
                   <dd className="font-medium">{item.purchase_year || '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">購入金額</dt>
+                  <dt className="text-sm text-default-500">購入金額</dt>
                   <dd className="font-medium">
                     {item.purchase_amount ? `¥${item.purchase_amount.toLocaleString()}` : '-'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">耐用年数</dt>
+                  <dt className="text-sm text-default-500">耐用年数</dt>
                   <dd className="font-medium">{item.durability_years ? `${item.durability_years}年` : '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">減価償却対象</dt>
+                  <dt className="text-sm text-default-500">減価償却対象</dt>
                   <dd className="font-medium">{item.is_depreciation_target ? 'はい' : 'いいえ'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">QRコードタイプ</dt>
+                  <dt className="text-sm text-default-500">QRコードタイプ</dt>
                   <dd className="font-medium">
-                    {item.qr_code_type === 'qr' ? 'QRコード' : 
-                     item.qr_code_type === 'barcode' ? 'バーコード' : 'なし'}
+                    {item.qr_code_type === 'qr' ? 'QRコード' :
+                      item.qr_code_type === 'barcode' ? 'バーコード' : 'なし'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">ステータス</dt>
+                  <dt className="text-sm text-default-500">ステータス</dt>
                   <dd>
                     {item.is_disposed ? (
                       <Chip color="danger" size="sm">廃棄済み</Chip>
@@ -190,9 +187,9 @@ export function ItemDetail() {
                     )}
                   </dd>
                 </div>
-{/* Storage Information */}
+                {/* Storage Information */}
                 <div className="sm:col-span-2">
-                  <dt className="text-sm text-gray-600">保管情報</dt>
+                  <dt className="text-sm text-default-500">保管情報</dt>
                   <dd className="flex flex-wrap gap-2 mt-1">
                     {item.storage_type === 'container' ? (
                       isContainerLoading ? (
@@ -231,7 +228,7 @@ export function ItemDetail() {
               {item.remarks && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-2">備考</h3>
-                  <p className="whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">{item.remarks}</p>
+                  <p className="whitespace-pre-wrap bg-content2 p-3 rounded-lg">{item.remarks}</p>
                 </div>
               )}
             </CardBody>
@@ -246,7 +243,7 @@ export function ItemDetail() {
                 <dl className="space-y-4">
                   {item.connection_names?.length ? (
                     <div>
-                      <dt className="text-sm text-gray-600 mb-2">接続名称</dt>
+                      <dt className="text-sm text-default-500 mb-2">接続名称</dt>
                       <dd>
                         <ConnectionVisualization
                           connections={item.connection_names}
@@ -255,17 +252,17 @@ export function ItemDetail() {
                       </dd>
                     </div>
                   ) : null}
-                  
+
                   {item.cable_color_pattern?.length ? (
                     <div>
-                      <dt className="text-sm text-gray-600 mb-2">ケーブル色パターン</dt>
+                      <dt className="text-sm text-default-500 mb-2">ケーブル色パターン</dt>
                       <dd className="space-y-2">
-                        <CableVisualization 
-                          colorNames={item.cable_color_pattern} 
+                        <CableVisualization
+                          colorNames={item.cable_color_pattern}
                           size="lg"
                           showLabels={false}
                         />
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-default-500">
                           端子側から順に: {item.cable_color_pattern?.map((name, index) => (
                             <span key={index}>
                               {index + 1}.{name}
@@ -276,7 +273,7 @@ export function ItemDetail() {
                       </dd>
                     </div>
                   ) : null}
-                  
+
                 </dl>
               </CardBody>
             </Card>
@@ -308,14 +305,14 @@ export function ItemDetail() {
               <CardBody className="p-4">
                 <Tabs aria-label="コード表示タイプ">
                   <Tab key="qr" title="QRコード">
-                    <QRCodeDisplay 
+                    <QRCodeDisplay
                       value={item.label_id}
                       size={200}
                       title={`${item.name} (${item.label_id})`}
                     />
                   </Tab>
                   <Tab key="barcode" title="バーコード">
-                    <BarcodeDisplay 
+                    <BarcodeDisplay
                       value={item.label_id}
                       format="CODE128"
                       title={`${item.name} (${item.label_id})`}
@@ -333,17 +330,17 @@ export function ItemDetail() {
             <CardBody>
               <dl className="space-y-2">
                 <div>
-                  <dt className="text-sm text-gray-600">QRコードタイプ</dt>
+                  <dt className="text-sm text-default-500">QRコードタイプ</dt>
                   <dd className="font-medium">{item.qr_code_type || 'なし'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">登録日時</dt>
+                  <dt className="text-sm text-default-500">登録日時</dt>
                   <dd className="font-medium">
                     {new Date(item.created_at).toLocaleString('ja-JP')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-600">更新日時</dt>
+                  <dt className="text-sm text-default-500">更新日時</dt>
                   <dd className="font-medium">
                     {new Date(item.updated_at).toLocaleString('ja-JP')}
                   </dd>
@@ -366,7 +363,7 @@ export function ItemDetail() {
                 <p>
                   「<strong>{item?.name}</strong>」を削除しますか？
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-default-500">
                   この操作は取り消すことができません。
                 </p>
               </ModalBody>
