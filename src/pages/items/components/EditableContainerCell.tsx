@@ -48,15 +48,17 @@ export function EditableContainerCell({
                     setCurrentValue(value)
                 }}
             >
-                <SelectItem key="" textValue="なし">なし</SelectItem>
-                {containers.map((container: Container) => {
-                    const displayText = `${container.name} - ${container.location}`
-                    return (
-                        <SelectItem key={container.id} textValue={displayText}>
-                            {container.name} - <span className="text-default-500">{container.location}</span>
-                        </SelectItem>
-                    )
-                })}
+                {[
+                    <SelectItem key="" textValue="なし">なし</SelectItem>,
+                    ...containers.map((container: Container) => {
+                        const displayText = `${container.name} - ${container.location}`
+                        return (
+                            <SelectItem key={container.id} textValue={displayText}>
+                                {container.name} - <span className="text-default-500">{container.location}</span>
+                            </SelectItem>
+                        )
+                    })
+                ]}
             </Select>
         )
     }

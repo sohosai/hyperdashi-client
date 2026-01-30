@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SortDescriptor, Selection } from '@heroui/react'
-import { Item, Container } from '@/types'
+import type { Item, Container } from '@/types'
 import {
   useItems,
   useCreateItem,
