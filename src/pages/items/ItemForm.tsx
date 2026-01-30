@@ -272,12 +272,25 @@ export function ItemForm() {
         targetItemId = newItem.id
       }
 
-      // Save tags
+      // Save tags - handle errors separately to distinguish from item save failures
       if (targetItemId) {
-        await setItemTagsMutation.mutateAsync({
-          itemId: targetItemId,
-          tagIds: selectedTags.map(t => t.id)
-        })
+        try {
+          await setItemTagsMutation.mutateAsync({
+            itemId: targetItemId,
+            tagIds: selectedTags.map(t => t.id)
+          })
+        } catch (tagError: any) {
+          console.error('Tag save failed:', tagError)
+          // Item was saved successfully, but tag saving failed
+          // Still navigate to items list but show a warning
+          setSubmitError('アイテムは保存されましたが、タグの保存に失敗しました。')
+          // Reset duplicate warning state
+          setIsDuplicateId(false)
+          setIsCheckingDuplicate(false)
+          setDuplicateItems([])
+          navigate('/items')
+          return
+        }
       }
 
       // Reset duplicate warning state on success
@@ -287,9 +300,9 @@ export function ItemForm() {
       setDuplicateItems([])
       navigate('/items')
     } catch (error: any) {
-      console.error('Form submission error:', error)
+      console.error('Item save error:', error)
 
-      let errorMessage = '保存に失敗しました。'
+      let errorMessage = 'アイテムの保存に失敗しました。'
 
       if (error?.response?.status === 400) {
         errorMessage = 'リクエストデータに問題があります。入力内容を確認してください。'
