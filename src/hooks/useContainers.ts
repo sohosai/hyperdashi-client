@@ -8,6 +8,8 @@ import {
 } from '@/services'
 
 export function useContainers(params?: {
+  page?: number
+  per_page?: number
   location?: string
   include_disposed?: boolean
   search?: string
@@ -16,7 +18,7 @@ export function useContainers(params?: {
 }) {
   return useQuery({
     queryKey: ['containers', params],
-    queryFn: () => containerService.listContainers(params),
+    queryFn: () => containerService.listContainers({ page: 1, per_page: 1000, ...params }),
   })
 }
 

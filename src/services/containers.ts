@@ -42,6 +42,8 @@ export interface BulkUpdateContainersDisposedStatusRequest {
 }
 
 export interface ListContainersQuery {
+  page?: number
+  per_page?: number
   location?: string
   include_disposed?: boolean
   search?: string
@@ -59,6 +61,9 @@ export interface GetContainerResponse {
 
 export interface ListContainersResponse {
   containers: ContainerWithItemCount[]
+  total?: number
+  page?: number
+  per_page?: number
 }
 
 export interface UpdateContainerResponse {
@@ -83,6 +88,8 @@ export const containerService = {
 
   async listContainers(query?: ListContainersQuery): Promise<ListContainersResponse> {
     const params = new URLSearchParams()
+    if (query?.page !== undefined) params.append('page', query.page.toString())
+    if (query?.per_page !== undefined) params.append('per_page', query.per_page.toString())
     if (query?.location) params.append('location', query.location)
     if (query?.include_disposed !== undefined) params.append('include_disposed', query.include_disposed.toString())
     if (query?.search) params.append('search', query.search)
