@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Button, Card, CardBody, CardHeader, Chip, Image, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Tabs, Tab } from '@heroui/react'
 import { ArrowLeft, Edit, Trash2, QrCode, BarChart3 } from 'lucide-react'
 import { useItem, useDeleteItem, useContainer, useDisposeItem, useUndisposeItem } from '@/hooks'
