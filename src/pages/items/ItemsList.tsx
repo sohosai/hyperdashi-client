@@ -9,6 +9,7 @@ import {
   useBulkMoveToContainer,
   useContainers,
 } from '@/hooks'
+import { itemsService } from '@/services'
 import { ColumnDef } from '@/components/ui/EnhancedList'
 import { BulkActionBar } from '@/components/ui/BulkActionBar'
 import { FilterState } from '@/components/ui/AdvancedFilters'
@@ -31,6 +32,7 @@ export function ItemsList() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
   const [perPage, setPerPage] = useState(Number(searchParams.get('per_page')) || 20)
+  const [isExportingCsv, setIsExportingCsv] = useState(false)
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: searchParams.get('sort_by') || 'created_at',
     direction: searchParams.get('sort_order') === 'asc' ? 'ascending' : 'descending',
@@ -217,6 +219,32 @@ export function ItemsList() {
     setSelectionKeys(new Set([]))
   }
 
+  const handleExportCsv = async () => {
+    try {
+      setIsExportingCsv(true)
+      const { blob, filename } = await itemsService.exportCsv({
+        search: searchTerm || undefined,
+        status: filters.status && filters.status !== 'all' ? filters.status : undefined,
+        container_id: filters.container_id || undefined,
+        storage_type:
+          filters.storage_type && filters.storage_type !== 'all' ? filters.storage_type : undefined,
+      })
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('CSV export failed:', error)
+    } finally {
+      setIsExportingCsv(false)
+    }
+  }
+
   if (error) return <div>備品の読み込み中にエラーが発生しました: {error.message}</div>
 
   return (
@@ -239,6 +267,8 @@ export function ItemsList() {
         columnOrderStorageKey={columnOrderStorageKey}
         columnVisibilityStorageKey={columnVisibilityStorageKey}
         orderedVisibleColumnKeys={orderedVisibleColumnKeys}
+        onExportCsv={handleExportCsv}
+        isExportingCsv={isExportingCsv}
       />
 
       <ItemsTable

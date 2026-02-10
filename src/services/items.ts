@@ -1,6 +1,28 @@
 import { api } from './api'
 import { Item, PaginatedResponse } from '@/types'
 
+function parseFilenameFromContentDisposition(contentDisposition?: string): string | undefined {
+  if (!contentDisposition) return undefined
+
+  // Prefer RFC 5987 form: filename*=UTF-8''...
+  const filenameStarMatch = contentDisposition.match(/filename\*=(?:UTF-8''|utf-8'')?([^;]+)/i)
+  if (filenameStarMatch?.[1]) {
+    const raw = filenameStarMatch[1].trim().replace(/^\"|\"$/g, '')
+    try {
+      return decodeURIComponent(raw)
+    } catch {
+      return raw
+    }
+  }
+
+  const filenameMatch = contentDisposition.match(/filename=([^;]+)/i)
+  if (filenameMatch?.[1]) {
+    return filenameMatch[1].trim().replace(/^\"|\"$/g, '')
+  }
+
+  return undefined
+}
+
 export const itemsService = {
   async getAll(params?: {
     page?: number
@@ -39,6 +61,47 @@ export const itemsService = {
       per_page: data.per_page || 20,
       total_pages: Math.ceil((data.total || 0) / (data.per_page || 20)),
     }
+  },
+
+  async exportCsv(params?: {
+    search?: string
+    status?: 'available' | 'on_loan' | 'disposed' | 'all'
+    container_id?: string
+    storage_type?: 'location' | 'container' | 'all'
+  }): Promise<{ blob: Blob; filename: string }> {
+    // Transform status parameter to backend field names (same behavior as getAll)
+    const apiParams: any = { ...params }
+
+    if (apiParams?.status === 'all') delete apiParams.status
+    if (apiParams?.storage_type === 'all') delete apiParams.storage_type
+
+    if (apiParams?.status) {
+      const status = apiParams.status
+      delete apiParams.status
+
+      switch (status) {
+        case 'available':
+          apiParams.is_on_loan = false
+          apiParams.is_disposed = false
+          break
+        case 'on_loan':
+          apiParams.is_on_loan = true
+          break
+        case 'disposed':
+          apiParams.is_disposed = true
+          break
+      }
+    }
+
+    const response = await api.get<Blob>('/items/csv', {
+      params: apiParams,
+      responseType: 'blob',
+    })
+
+    const filename =
+      parseFilenameFromContentDisposition(response.headers['content-disposition']) || 'items.csv'
+
+    return { blob: response.data, filename }
   },
 
   async getById(id: string): Promise<Item> {

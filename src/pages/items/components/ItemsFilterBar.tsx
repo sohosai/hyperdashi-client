@@ -1,5 +1,5 @@
 import { Input, Button, Popover, PopoverTrigger, PopoverContent } from '@heroui/react'
-import { Search, Settings } from 'lucide-react'
+import { Download, Search, Settings } from 'lucide-react'
 import { AdvancedFilters, FilterState } from '@/components/ui/AdvancedFilters'
 import { Container, Item } from '@/types'
 import { ColumnDef } from '@/components/ui/EnhancedList'
@@ -26,6 +26,8 @@ interface ItemsFilterBarProps {
     columnOrderStorageKey: string
     columnVisibilityStorageKey: string
     orderedVisibleColumnKeys: string[]
+    onExportCsv: () => void
+    isExportingCsv?: boolean
 }
 
 export function ItemsFilterBar({
@@ -43,7 +45,9 @@ export function ItemsFilterBar({
     setColumnOrder,
     columnOrderStorageKey,
     columnVisibilityStorageKey,
-    orderedVisibleColumnKeys
+    orderedVisibleColumnKeys,
+    onExportCsv,
+    isExportingCsv = false,
 }: ItemsFilterBarProps) {
     return (
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
@@ -61,8 +65,19 @@ export function ItemsFilterBar({
                     setSearchTerm(value)
                     setPage(1)
                 }}
-            />
+                />
             <div className="flex items-center gap-2">
+                <Button
+                    size="sm"
+                    variant="bordered"
+                    aria-label="備品一覧CSV出力"
+                    startContent={<Download size={16} />}
+                    onPress={onExportCsv}
+                    isLoading={isExportingCsv}
+                >
+                    CSV出力
+                </Button>
+
                 <AdvancedFilters
                     filters={filters}
                     onFiltersChange={(newFilters) => {
