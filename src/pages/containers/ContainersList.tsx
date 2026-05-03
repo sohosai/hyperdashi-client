@@ -66,10 +66,13 @@ import {
   Input,
   Chip,
   Checkbox,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
   SortDescriptor,
   Selection,
 } from '@heroui/react'
-import { Plus, Search, Package, Edit, Eye, Trash2, RotateCcw, GripVertical } from 'lucide-react'
+import { Plus, Search, Package, Edit, Eye, Trash2, RotateCcw, GripVertical, Settings } from 'lucide-react'
 import {
   useContainers,
   useUpdateContainer,
@@ -136,7 +139,6 @@ export function ContainersList() {
     }
     return defaultColumnKeys
   })
-  const [showColumnModal, setShowColumnModal] = useState(false)
 
   const handleToggleColumn = (key: string) => {
     let next: string[]
@@ -414,104 +416,74 @@ export function ContainersList() {
             onFiltersChange={setFilters}
             uniqueValues={uniqueValues}
           />
-          <Button
-            size="sm"
-            variant="bordered"
-            aria-label="カラム設定"
-            onClick={() => setShowColumnModal(true)}
-          >
-            カラム設定
-          </Button>
-        </div>
-        {showColumnModal && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              background: 'rgba(0,0,0,0.2)',
-              zIndex: 1000,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            onClick={() => setShowColumnModal(false)}
-          >
-            <div
-              style={{
-                background: 'white',
-                borderRadius: 8,
-                boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
-                padding: 24,
-                minWidth: 320,
-                maxWidth: 400,
-                maxHeight: '80vh',
-                overflowY: 'auto',
-                position: 'relative'
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              <h2 className="text-lg font-bold mb-2">カラム設定</h2>
-              {/* Move sensors hook to top-level to avoid conditional hook call */}
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={({ active, over }) => {
-                  if (active.id !== over?.id) {
-                    const oldIndex = visibleColumnKeys.indexOf(active.id as string)
-                    const newIndex = visibleColumnKeys.indexOf(over?.id as string)
-                    const newOrder = arrayMove(visibleColumnKeys, oldIndex, newIndex)
-                    setVisibleColumnKeys(newOrder)
-                    localStorage.setItem(columnStorageKey, JSON.stringify(newOrder))
-                  }
-                }}
+          <Popover placement="bottom-end" shouldCloseOnScroll={false}>
+            <PopoverTrigger>
+              <Button
+                size="sm"
+                variant="bordered"
+                aria-label="カラム設定"
+                startContent={<Settings size={16} />}
               >
-                <SortableContext
-                  items={visibleColumnKeys}
-                  strategy={verticalListSortingStrategy}
+                カラム設定
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0">
+              <div className="p-4 w-80 bg-content1 text-foreground">
+                <h2 className="text-lg font-bold mb-2">カラム設定</h2>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={({ active, over }) => {
+                    if (active.id !== over?.id) {
+                      const oldIndex = visibleColumnKeys.indexOf(active.id as string)
+                      const newIndex = visibleColumnKeys.indexOf(over?.id as string)
+                      const newOrder = arrayMove(visibleColumnKeys, oldIndex, newIndex)
+                      setVisibleColumnKeys(newOrder)
+                      localStorage.setItem(columnStorageKey, JSON.stringify(newOrder))
+                    }
+                  }}
                 >
-                  {visibleColumnKeys.map(key => {
-                    const col = allColumnDefs.find(c => c.key === key)
-                    if (!col) return null
-                    return (
-                      <SortableColumnItem
-                        key={col.key}
-                        id={col.key}
-                        label={col.label}
-                        checked={true}
-                        onToggle={() => handleToggleColumn(col.key as string)}
-                        useHeroUI
-                      />
-                    )
-                  })}
-                </SortableContext>
-                {/* Non-draggable for hidden columns */}
-                {allColumnDefs
-                  .filter(col => col.key !== 'actions' && !visibleColumnKeys.includes(col.key))
-                  .map(col => (
-                    <div key={col.key} className="flex items-center gap-2 px-2 py-1 opacity-60">
-                      <input
-                        type="checkbox"
-                        checked={false}
-                        onChange={() => handleToggleColumn(col.key as string)}
-                        tabIndex={-1}
-                        className="accent-blue-500"
-                        style={{ pointerEvents: 'auto' }}
-                      />
-                      <span>{col.label}</span>
+                  <SortableContext
+                    items={visibleColumnKeys}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-1">
+                      {visibleColumnKeys.map(key => {
+                        const col = allColumnDefs.find(c => c.key === key)
+                        if (!col) return null
+                        return (
+                          <SortableColumnItem
+                            key={col.key}
+                            id={col.key}
+                            label={col.label}
+                            checked={true}
+                            onToggle={() => handleToggleColumn(col.key as string)}
+                            useHeroUI
+                          />
+                        )
+                      })}
+                      {allColumnDefs
+                        .filter(col => col.key !== 'actions' && !visibleColumnKeys.includes(col.key))
+                        .map(col => (
+                          <div key={col.key} className="flex items-center gap-2 px-2 py-1 opacity-60">
+                            <input
+                              type="checkbox"
+                              checked={false}
+                              onChange={() => handleToggleColumn(col.key as string)}
+                              tabIndex={-1}
+                              className="accent-blue-500"
+                              style={{ pointerEvents: 'auto' }}
+                            />
+                            <span>{col.label}</span>
+                          </div>
+                        ))}
                     </div>
-                  ))}
-              </DndContext>
-              <div className="flex justify-end mt-4">
-                <Button size="sm" variant="light" onClick={() => setShowColumnModal(false)}>
-                  閉じる
-                </Button>
+                  </SortableContext>
+                </DndContext>
               </div>
-            </div>
-          </div>
-        )}
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="bg-content1 border border-default-200 rounded-lg shadow-md p-2 mb-4">
