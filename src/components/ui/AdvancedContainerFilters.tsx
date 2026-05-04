@@ -60,7 +60,7 @@ export function AdvancedContainerFilters({
 
   return (
     <div className="flex items-center gap-2">
-      <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
+      <Popover isOpen={isOpen} onOpenChange={setIsOpen} shouldCloseOnScroll={false}>
         <PopoverTrigger>
           <Button
             variant="bordered"
