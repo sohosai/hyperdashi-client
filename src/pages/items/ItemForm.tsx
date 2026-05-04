@@ -231,7 +231,7 @@ export function ItemForm() {
         label_id: data.label_id?.trim() || '',
         // Optional string fields
         model_number: data.model_number?.trim() || undefined,
-        remarks: data.remarks?.trim() || undefined,
+        remarks: data.remarks?.trim() === '' ? null : data.remarks?.trim(),
         // Numeric fields - only include if they have valid values
         ...(data.purchase_year && !isNaN(Number(data.purchase_year)) && { purchase_year: Number(data.purchase_year) }),
         ...(data.purchase_amount && !isNaN(Number(data.purchase_amount)) && { purchase_amount: Number(data.purchase_amount) }),

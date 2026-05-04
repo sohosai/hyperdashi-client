@@ -1,6 +1,10 @@
 import { api } from './api'
 import { Item, PaginatedResponse } from '@/types'
 
+type UpdateItemPayload = Partial<Omit<Item, 'id' | 'created_at' | 'updated_at' | 'remarks'>> & {
+  remarks?: string | null
+}
+
 function parseFilenameFromContentDisposition(contentDisposition?: string): string | undefined {
   if (!contentDisposition) return undefined
 
@@ -49,10 +53,10 @@ export const itemsService = {
           break
       }
     }
-    
+
     const response = await api.get('/items', { params: apiParams })
     const data = response.data
-    
+
     // Transform API response to match our PaginatedResponse interface
     return {
       data: data.items || [],
@@ -114,7 +118,7 @@ export const itemsService = {
     return response.data
   },
 
-  async update(id: string, data: Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>>): Promise<Item> {
+  async update(id: string, data: UpdateItemPayload): Promise<Item> {
     const response = await api.put(`/items/${id}`, data)
     return response.data
   },
@@ -126,7 +130,7 @@ export const itemsService = {
   async uploadImage(id: string, file: File): Promise<{ image_url: string }> {
     const formData = new FormData()
     formData.append('image', file)
-    
+
     const response = await api.post(`/items/${id}/image`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -166,7 +170,7 @@ export const itemsService = {
       // If endpoint doesn't exist, extract from all items
       const allItems = await this.getAll({ per_page: 1000 })
       const suggestions = new Set<string>()
-      
+
       allItems.data.forEach(item => {
         const fieldValue = item[field]
         if (field === 'storage_location' && typeof fieldValue === 'string' && fieldValue) {
@@ -181,7 +185,7 @@ export const itemsService = {
           })
         }
       })
-      
+
       return Array.from(suggestions).sort()
     }
   },
@@ -201,8 +205,8 @@ export const itemsService = {
     ids: string[],
     containerId: string
   ): Promise<void> => {
-    await api.put('/items/bulk/container', { 
-      ids, 
+    await api.put('/items/bulk/container', {
+      ids,
       container_id: containerId,
       storage_type: 'container'
     });
@@ -212,8 +216,8 @@ export const itemsService = {
     ids: string[],
     storageLocation: string
   ): Promise<void> => {
-    await api.put('/items/bulk/location', { 
-      ids, 
+    await api.put('/items/bulk/location', {
+      ids,
       storage_location: storageLocation,
       storage_type: 'location'
     });
