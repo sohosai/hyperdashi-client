@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { itemsService } from '@/services'
 import { Item } from '@/types'
 
+type UpdateItemPayload = Partial<Omit<Item, 'id' | 'created_at' | 'updated_at' | 'remarks'>> & {
+  remarks?: string | null
+}
+
 export function useItems(params?: {
   page?: number
   per_page?: number
@@ -26,7 +30,7 @@ export function useItem(id: string) {
 
 export function useCreateItem() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: itemsService.create,
     onSuccess: () => {
@@ -37,9 +41,9 @@ export function useCreateItem() {
 
 export function useUpdateItem() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateItemPayload }) =>
       itemsService.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
@@ -50,7 +54,7 @@ export function useUpdateItem() {
 
 export function useDeleteItem() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: itemsService.delete,
     onSuccess: () => {
@@ -61,7 +65,7 @@ export function useDeleteItem() {
 
 export function useUploadItemImage() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) =>
       itemsService.uploadImage(id, file),
@@ -73,7 +77,7 @@ export function useUploadItemImage() {
 
 export function useDisposeItem() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: itemsService.dispose,
     onSuccess: (_, id) => {
@@ -85,7 +89,7 @@ export function useDisposeItem() {
 
 export function useUndisposeItem() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: itemsService.undispose,
     onSuccess: (_, id) => {
