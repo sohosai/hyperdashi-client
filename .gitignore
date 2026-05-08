@@ -31,7 +31,3 @@ dist-ssr
 # Build artifacts
 *.tsbuildinfo
 .eslintcache
-
-# Diagrams
-*.dio
-*.drawio

@@ -42,21 +42,6 @@ export function ItemsList() {
   const [filters, setFilters] = useState<FilterState>(() => {
     const initialFilters: FilterState = {}
 
-    const nameParam = searchParams.get('name')
-    if (nameParam) {
-      initialFilters.name = nameParam
-    }
-
-    const labelIdParam = searchParams.get('label_id')
-    if (labelIdParam) {
-      initialFilters.label_id = labelIdParam
-    }
-
-    const modelNumberParam = searchParams.get('model_number')
-    if (modelNumberParam) {
-      initialFilters.model_number = modelNumberParam
-    }
-
     const statusParam = searchParams.get('status')
     if (statusParam && statusParam !== 'all') {
       initialFilters.status = statusParam as 'available' | 'on_loan' | 'disposed'
@@ -116,9 +101,6 @@ export function ItemsList() {
     if (searchTerm) params.set('search', searchTerm)
     if (sortDescriptor.column) params.set('sort_by', sortDescriptor.column as string)
     if (sortDescriptor.direction) params.set('sort_order', sortDescriptor.direction === 'ascending' ? 'asc' : 'desc')
-    if (filters.name) params.set('name', filters.name)
-    if (filters.label_id) params.set('label_id', filters.label_id)
-    if (filters.model_number) params.set('model_number', filters.model_number)
     if (filters.status) params.set('status', filters.status)
     if (filters.container_id) params.set('container_id', filters.container_id)
     if (filters.storage_type) params.set('storage_type', filters.storage_type)
@@ -152,9 +134,6 @@ export function ItemsList() {
     }
 
     // Add filters to query params
-    if (filters.name) params.name = filters.name
-    if (filters.label_id) params.label_id = filters.label_id
-    if (filters.model_number) params.model_number = filters.model_number
     if (filters.status) params.status = filters.status
     if (filters.container_id) params.container_id = filters.container_id
     if (filters.storage_type) params.storage_type = filters.storage_type
@@ -245,9 +224,6 @@ export function ItemsList() {
       setIsExportingCsv(true)
       const { blob, filename } = await itemsService.exportCsv({
         search: searchTerm || undefined,
-        name: filters.name || undefined,
-        label_id: filters.label_id || undefined,
-        model_number: filters.model_number || undefined,
         status: filters.status && filters.status !== 'all' ? filters.status : undefined,
         container_id: filters.container_id || undefined,
         storage_type:

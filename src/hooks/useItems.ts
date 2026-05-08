@@ -10,9 +10,6 @@ export function useItems(params?: {
   page?: number
   per_page?: number
   search?: string
-  name?: string
-  label_id?: string
-  model_number?: string
   status?: 'available' | 'on_loan' | 'disposed'
   container_id?: string
   storage_type?: string

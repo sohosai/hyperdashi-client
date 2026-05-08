@@ -32,9 +32,6 @@ export const itemsService = {
     page?: number
     per_page?: number
     search?: string
-    name?: string
-    label_id?: string
-    model_number?: string
     status?: 'available' | 'on_loan' | 'disposed'
     container_id?: string
     storage_type?: string
@@ -72,9 +69,6 @@ export const itemsService = {
 
   async exportCsv(params?: {
     search?: string
-    name?: string
-    label_id?: string
-    model_number?: string
     status?: 'available' | 'on_loan' | 'disposed' | 'all'
     container_id?: string
     storage_type?: 'location' | 'container' | 'all'
