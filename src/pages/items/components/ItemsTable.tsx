@@ -136,7 +136,7 @@ export function ItemsTable({
             }
             case 'remarks':
                 return (
-                    <EditableCell value={item.remarks || ''} onSave={(value) => handleUpdate(item.id, 'remarks', value)}>
+                    <EditableCell value={item.remarks || ''} onSave={(value) => handleUpdate(item.id, 'remarks', value.trim() === '' ? null : value)}>
                         <span>{item.remarks}</span>
                     </EditableCell>
                 )
