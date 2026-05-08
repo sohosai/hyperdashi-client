@@ -1,52 +1,57 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'light' | 'dark'
+type ThemePreference = Theme | 'system'
+const THEME_PREFERENCE_KEY = 'theme-preference'
 
 interface ThemeContextType {
   theme: Theme
   setTheme: (theme: Theme) => void
+  toggleTheme: () => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // システムのダークモード設定を検出
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
+    const storedPreference = window.localStorage.getItem(THEME_PREFERENCE_KEY)
+    if (storedPreference === 'light' || storedPreference === 'dark' || storedPreference === 'system') {
+      return storedPreference
+    }
+    return 'system'
+  })
+  const [systemTheme, setSystemTheme] = useState<Theme>(() => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark'
     }
     return 'light'
   })
 
+  const theme = themePreference === 'system' ? systemTheme : themePreference
+
   useEffect(() => {
-    // システムのダークモード設定の変更を監視
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
-      setTheme(e.matches ? 'dark' : 'light')
+      setSystemTheme(e.matches ? 'dark' : 'light')
     }
 
-    // リスナーを追加
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', handleChange)
     } else {
-      // 古いブラウザ向けのフォールバック
       mediaQuery.addListener(handleChange)
     }
 
-    // クリーンアップ
     return () => {
       if (mediaQuery.removeEventListener) {
         mediaQuery.removeEventListener('change', handleChange)
       } else {
-        // 古いブラウザ向けのフォールバック
         mediaQuery.removeListener(handleChange)
       }
     }
   }, [])
 
   useEffect(() => {
-    // HTMLドキュメントにダークモードクラスを適用
     const root = window.document.documentElement
     if (theme === 'dark') {
       root.classList.add('dark')
@@ -55,8 +60,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme])
 
+  const setTheme = (nextTheme: Theme) => {
+    setThemePreference(nextTheme)
+    window.localStorage.setItem(THEME_PREFERENCE_KEY, nextTheme)
+  }
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   )

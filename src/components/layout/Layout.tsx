@@ -8,16 +8,20 @@ import {
   NavbarMenu,
   NavbarMenuItem,
   Button,
+  Switch,
   Tabs,
   Tab
 } from '@heroui/react'
+import { Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
+import { useTheme } from '@/contexts/ThemeContext'
 
 export function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)
@@ -77,6 +81,18 @@ export function Layout() {
         </div>
 
         <NavbarContent justify="end">
+          <NavbarItem>
+            <Switch
+              isSelected={theme === 'dark'}
+              onValueChange={toggleTheme}
+              size="sm"
+              color="primary"
+              aria-label="ライトモードとダークモードを切り替え"
+              thumbIcon={({ isSelected, className }) =>
+                isSelected ? <Moon className={className} size={14} /> : <Sun className={className} size={14} />
+              }
+            />
+          </NavbarItem>
           <NavbarItem className="hidden sm:flex">
             <ConnectionStatus />
           </NavbarItem>
@@ -106,6 +122,19 @@ export function Layout() {
           ))}
           <NavbarMenuItem>
             <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-divider">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-foreground-500">テーマ:</span>
+                <Switch
+                  isSelected={theme === 'dark'}
+                  onValueChange={toggleTheme}
+                  size="sm"
+                  color="primary"
+                  aria-label="ライトモードとダークモードを切り替え"
+                  thumbIcon={({ isSelected, className }) =>
+                    isSelected ? <Moon className={className} size={14} /> : <Sun className={className} size={14} />
+                  }
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-foreground-500">接続状態:</span>
                 <ConnectionStatus />
