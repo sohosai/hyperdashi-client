@@ -41,6 +41,15 @@ export const itemsService = {
   }): Promise<PaginatedResponse<Item>> {
     // Transform status parameter to backend field names
     const apiParams: any = { ...params }
+    const fallbackSearchCandidates = [apiParams.name, apiParams.label_id, apiParams.model_number]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+    // Backward compatibility:
+    // old backends may ignore name/label_id/model_number but still support `search`.
+    if (!apiParams.search && fallbackSearchCandidates.length === 1) {
+      apiParams.search = fallbackSearchCandidates[0]
+    }
+
     if (params?.status) {
       delete apiParams.status
       switch (params.status) {
@@ -81,6 +90,13 @@ export const itemsService = {
   }): Promise<{ blob: Blob; filename: string }> {
     // Transform status parameter to backend field names (same behavior as getAll)
     const apiParams: any = { ...params }
+    const fallbackSearchCandidates = [apiParams.name, apiParams.label_id, apiParams.model_number]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+    // Backward compatibility with backends that only support `search`.
+    if (!apiParams.search && fallbackSearchCandidates.length === 1) {
+      apiParams.search = fallbackSearchCandidates[0]
+    }
 
     if (apiParams?.status === 'all') delete apiParams.status
     if (apiParams?.storage_type === 'all') delete apiParams.storage_type
