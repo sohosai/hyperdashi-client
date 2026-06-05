@@ -33,6 +33,31 @@ export function useConnectors(params: ConnectorParams = {}) {
     })
 }
 
+export function useAllConnectors() {
+    return useQuery({
+        queryKey: ['connectors', 'all'],
+        queryFn: async () => {
+            const perPage = 100
+            const firstResponse = await api.get<ConnectorsResponse>(`/connectors?page=1&per_page=${perPage}`)
+            const firstData = firstResponse.data
+            const allConnectors = [...firstData.connectors]
+            const totalPages = Math.ceil(firstData.total / firstData.per_page)
+
+            for (let page = 2; page <= totalPages; page++) {
+                const response = await api.get<ConnectorsResponse>(`/connectors?page=${page}&per_page=${perPage}`)
+                allConnectors.push(...response.data.connectors)
+            }
+
+            return {
+                data: allConnectors,
+                total: firstData.total,
+                page: 1,
+                per_page: allConnectors.length,
+            }
+        },
+    })
+}
+
 export function useConnector(id: number | null) {
     return useQuery({
         queryKey: ['connector', id],

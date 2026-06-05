@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Chip, Autocomplete, AutocompleteItem, Tooltip } from '@heroui/react'
 import { Plus, X, Plug } from 'lucide-react'
-import { useConnectors, useCreateConnector } from '@/hooks/useConnectors'
+import { useAllConnectors, useCreateConnector } from '@/hooks/useConnectors'
 
 interface ConnectorInputProps {
     label: string
@@ -25,10 +25,12 @@ export function ConnectorInput({
     const [inputValue, setInputValue] = useState('')
 
     // Fetch connectors from master
-    const { data: connectorsData, isLoading } = useConnectors({ per_page: 100 })
+    const { data: connectorsData, isLoading } = useAllConnectors()
     const createConnector = useCreateConnector()
 
     const connectorNames = connectorsData?.data?.map(c => c.name) || []
+    const normalizeConnectorName = (name: string) => name.trim().toLowerCase()
+    const connectorNameSet = new Set(connectorNames.map(normalizeConnectorName))
 
     const addItem = () => {
         if (inputValue.trim() && values.length < maxItems) {
@@ -61,7 +63,7 @@ export function ConnectorInput({
         const trimmedValue = inputValue.trim()
 
         // Check if it's a new connector (not in master)
-        if (!connectorNames.includes(trimmedValue)) {
+        if (!connectorNameSet.has(normalizeConnectorName(trimmedValue))) {
             try {
                 await createConnector.mutateAsync({ name: trimmedValue })
             } catch (error) {
@@ -79,7 +81,8 @@ export function ConnectorInput({
         name.toLowerCase().includes(inputValue.toLowerCase())
     )
 
-    const isNewConnector = inputValue.trim() && !connectorNames.includes(inputValue.trim())
+    const isNewConnector =
+        inputValue.trim() && !connectorNameSet.has(normalizeConnectorName(inputValue))
 
     return (
         <div className="space-y-2">
@@ -100,7 +103,7 @@ export function ConnectorInput({
                     onKeyDown={handleKeyPress}
                     className="flex-1"
                     allowsCustomValue
-                    menuTrigger="input"
+                    menuTrigger="focus"
                     isDisabled={isReadOnly}
                     isLoading={isLoading}
                     startContent={<Plug size={14} className="text-default-400" />}
