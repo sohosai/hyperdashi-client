@@ -38,9 +38,22 @@ export const itemsService = {
     status?: 'available' | 'on_loan' | 'disposed'
     container_id?: string
     storage_type?: string
+    cable_color_pattern?: string
   }): Promise<PaginatedResponse<Item>> {
     // Transform status parameter to backend field names
     const apiParams: any = { ...params }
+    const cableColor = apiParams.cable_color_pattern?.trim()
+    const requestedPage = params?.page || 1
+    const requestedPerPage = params?.per_page || 20
+    delete apiParams.cable_color_pattern
+
+    // The items API does not currently support filtering JSON color arrays.
+    // Fetch all matching base records and paginate the color-filtered result here.
+    if (cableColor) {
+      apiParams.page = 1
+      apiParams.per_page = 1000
+    }
+
     const fallbackSearchCandidates = [apiParams.name, apiParams.label_id, apiParams.model_number]
       .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
 
@@ -68,6 +81,37 @@ export const itemsService = {
 
     const response = await api.get('/items', { params: apiParams })
     const data = response.data
+
+    if (cableColor) {
+      const totalItems = data.total || 0
+      const totalApiPages = Math.ceil(totalItems / apiParams.per_page)
+      const remainingResponses = totalApiPages > 1
+        ? await Promise.all(
+            Array.from({ length: totalApiPages - 1 }, (_, index) =>
+              api.get('/items', {
+                params: { ...apiParams, page: index + 2 },
+              })
+            )
+          )
+        : []
+
+      const allItems: Item[] = [
+        ...(data.items || []),
+        ...remainingResponses.flatMap(result => result.data.items || []),
+      ]
+      const filteredItems = allItems.filter(item =>
+        item.cable_color_pattern?.includes(cableColor)
+      )
+      const start = (requestedPage - 1) * requestedPerPage
+
+      return {
+        data: filteredItems.slice(start, start + requestedPerPage),
+        total: filteredItems.length,
+        page: requestedPage,
+        per_page: requestedPerPage,
+        total_pages: Math.ceil(filteredItems.length / requestedPerPage),
+      }
+    }
 
     // Transform API response to match our PaginatedResponse interface
     return {

@@ -280,15 +280,25 @@ export function AdvancedFilters({
                 onClear={() => clearFilter('connection_names')}
               />
 
-              <Input
+              <Select
                 label="ケーブル色"
-                placeholder="ケーブル色で検索"
+                placeholder="ケーブル色を選択"
                 size="sm"
-                value={filters.cable_color_pattern || ''}
-                onValueChange={(value) => updateFilter('cable_color_pattern', value)}
-                isClearable
-                onClear={() => clearFilter('cable_color_pattern')}
-              />
+                selectedKeys={
+                  filters.cable_color_pattern
+                    ? new Set([filters.cable_color_pattern])
+                    : new Set()
+                }
+                onSelectionChange={(keys) => {
+                  const value = Array.from(keys)[0] as string
+                  updateFilter('cable_color_pattern', value === 'all' ? undefined : value)
+                }}
+              >
+                <SelectItem key="all">すべて</SelectItem>
+                {uniqueValues.cableColors.map(color => (
+                  <SelectItem key={color}>{color}</SelectItem>
+                )) as any}
+              </Select>
 
               <Select
                 label="QR/バーコード種別"
@@ -329,6 +339,8 @@ export function AdvancedFilters({
                 case 'container_id':
                   const container = containers.find(c => c.id === value)
                   return `コンテナ: ${container?.name || value}`
+                case 'cable_color_pattern':
+                  return `ケーブル色: ${value}`
                 default:
                   return `${key}: ${value}`
               }

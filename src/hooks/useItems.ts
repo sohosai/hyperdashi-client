@@ -16,6 +16,7 @@ export function useItems(params?: {
   status?: 'available' | 'on_loan' | 'disposed'
   container_id?: string
   storage_type?: string
+  cable_color_pattern?: string
 }) {
   return useQuery({
     queryKey: ['items', params],
