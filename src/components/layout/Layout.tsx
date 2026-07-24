@@ -15,6 +15,7 @@ import {
 import { Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
+import { VersionDisplay } from '@/components/ui/VersionDisplay'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export function Layout() {
@@ -37,7 +38,7 @@ export function Layout() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200 flex flex-col">
       <Navbar
         maxWidth="full"
         isBordered
@@ -166,9 +167,12 @@ export function Layout() {
         </NavbarMenu>
       </Navbar>
 
-      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl flex-1">
         <Outlet />
       </main>
+      <footer className="px-4 py-3 text-right">
+        <VersionDisplay />
+      </footer>
     </div>
   )
 }

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+server_root="${repo_root}/../hyperdashi-server"
+
+client_revision="$(git -C "${repo_root}" rev-parse --short=12 HEAD)"
+server_revision="$(git -C "${server_root}" rev-parse --short=12 HEAD)"
+
+if [[ -n "$(git -C "${repo_root}" status --porcelain)" ]]; then
+  client_revision="${client_revision}-dirty"
+fi
+
+if [[ -n "$(git -C "${server_root}" status --porcelain)" ]]; then
+  server_revision="${server_revision}-dirty"
+fi
+
+CLIENT_GIT_SHA="${client_revision}" \
+SERVER_GIT_SHA="${server_revision}" \
+docker compose -f "${repo_root}/compose.yaml" up --build -d

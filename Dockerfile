@@ -17,11 +17,23 @@ COPY . .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Dockerのビルド時にフロントエンドのコミットIDを受け取る
+ARG VITE_GIT_SHA=unknown
+
+# Viteのビルド環境へ渡す
+ENV VITE_GIT_SHA=${VITE_GIT_SHA}
+
 # アプリケーションをビルド
 RUN bun run build
 
 # 実行ステージ
 FROM nginx:alpine
+
+# Dockerのビルド時にフロントエンドのコミットIDを受け取る
+ARG VITE_GIT_SHA=unknown
+
+# DockerイメージのメタデータにコミットIDを保存する
+LABEL org.opencontainers.image.revision=${VITE_GIT_SHA}
 
 # Nginxの設定ファイルをコピー
 COPY nginx.conf /etc/nginx/nginx.conf
