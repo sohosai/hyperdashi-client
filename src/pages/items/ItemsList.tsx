@@ -8,6 +8,7 @@ import {
   useBulkUpdateItemsDisposedStatus,
   useBulkMoveToContainer,
   useContainers,
+  useCableColors,
 } from '@/hooks'
 import { itemsService } from '@/services'
 import { ColumnDef } from '@/components/ui/EnhancedList'
@@ -77,6 +78,11 @@ export function ItemsList() {
       initialFilters.storage_location = storageLocationParam
     }
 
+    const cableColorParam = searchParams.get('cable_color_pattern')
+    if (cableColorParam) {
+      initialFilters.cable_color_pattern = cableColorParam
+    }
+
     return initialFilters
   })
 
@@ -123,6 +129,7 @@ export function ItemsList() {
     if (filters.container_id) params.set('container_id', filters.container_id)
     if (filters.storage_type) params.set('storage_type', filters.storage_type)
     if (filters.storage_location) params.set('storage_location', filters.storage_location)
+    if (filters.cable_color_pattern) params.set('cable_color_pattern', filters.cable_color_pattern)
 
     setSearchParams(params, { replace: true })
   }, [page, perPage, searchTerm, sortDescriptor, filters, setSearchParams])
@@ -159,18 +166,22 @@ export function ItemsList() {
     if (filters.container_id) params.container_id = filters.container_id
     if (filters.storage_type) params.storage_type = filters.storage_type
     if (filters.storage_location) params.storage_location = filters.storage_location
+    if (filters.cable_color_pattern) params.cable_color_pattern = filters.cable_color_pattern
 
     return params
   }, [page, perPage, searchTerm, sortDescriptor, filters])
 
   const { data, isLoading, error } = useItems(queryParams)
   let items = data?.data || []
+  const { data: cableColorsData } = useCableColors({ per_page: 1000 })
 
   // Extract unique values for filter options
   const uniqueValues = useMemo(() => {
     const storageLocations = new Set<string>()
     const connectionNames = new Set<string>()
-    const cableColors = new Set<string>()
+    const cableColors = new Set<string>(
+      (cableColorsData?.data || []).map(color => color.name)
+    )
 
     items.forEach(item => {
       if (item.storage_location) {
@@ -189,7 +200,7 @@ export function ItemsList() {
       connectionNames: Array.from(connectionNames).sort(),
       cableColors: Array.from(cableColors).sort(),
     }
-  }, [items])
+  }, [items, cableColorsData])
 
   const createItemMutation = useCreateItem()
   const bulkUpdateDisposedMutation = useBulkUpdateItemsDisposedStatus()
