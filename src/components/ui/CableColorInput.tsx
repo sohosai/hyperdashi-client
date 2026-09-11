@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Button, Chip, Select, SelectItem, Alert } from '@heroui/react'
-import { Plus, X, AlertTriangle, Shuffle } from 'lucide-react'
+import { X, AlertTriangle, Shuffle } from 'lucide-react'
 import { useCableColors, useItems } from '@/hooks'
 
 interface CableColorInputProps {
@@ -20,26 +20,12 @@ export function CableColorInput({
   connectionNames = [],
   currentItemId
 }: CableColorInputProps) {
-  const [selectedColorId, setSelectedColorId] = useState<string>('')
   const [conflictItems, setConflictItems] = useState<any[]>([])
   const { data: cableColorsData } = useCableColors()
   const { data: itemsData } = useItems({ per_page: 1000 }) // Get all items for conflict detection
 
   const cableColors = cableColorsData?.data || []
   const allItems = itemsData?.data || []
-
-  const addColor = () => {
-    if (selectedColorId && values.length < maxItems) {
-      // selectedColorId is now the color name
-      const selectedColor = cableColors.find(color => color.name === selectedColorId)
-      if (selectedColor) {
-        onChange([...values, selectedColor.name])
-        setSelectedColorId('')
-      }
-    }
-  }
-
-
 
   const removeColor = (index: number) => {
     const newValues = values.filter((_, i) => i !== index)
@@ -233,12 +219,18 @@ export function CableColorInput({
         <Select
           items={availableColors}
           placeholder="色を選択してください"
-          selectedKeys={selectedColorId ? [selectedColorId] : []}
+          selectedKeys={[]}
           onSelectionChange={(keys) => {
             const key = Array.from(keys)[0] as string
-            setSelectedColorId(key || '')
+            const selectedColor = cableColors.find(color => color.name === key)
+
+            if (selectedColor && values.length < maxItems) {
+              onChange([...values, selectedColor.name])
+            }
+
           }}
           className="flex-1"
+          isDisabled={values.length >= maxItems}
           renderValue={(items) => {
             const item = items[0]
             if (!item) return null
@@ -269,15 +261,6 @@ export function CableColorInput({
             </SelectItem>
           )}
         </Select>
-        <Button
-          isIconOnly
-          color="primary"
-          variant="flat"
-          onPress={addColor}
-          isDisabled={!selectedColorId || values.length >= maxItems}
-        >
-          <Plus size={16} />
-        </Button>
       </div>
 
       {values.length > 0 && (
@@ -317,7 +300,7 @@ export function CableColorInput({
       )}
 
       <p className="text-xs text-default-500">
-        {values.length}/{maxItems} 色選択済み
+        {values.length}/{maxItems} 色選択済み • 色を選ぶとすぐに追加されます
       </p>
     </div>
   )

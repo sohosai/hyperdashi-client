@@ -225,11 +225,11 @@ export const itemsService = {
     return response.data
   },
 
-  async getSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_location'): Promise<string[]> {
+  async getSuggestions(field: 'name' | 'connection_names' | 'cable_color_pattern' | 'storage_location'): Promise<string[]> {
     try {
       // Try to get suggestions from a dedicated endpoint if available
       // Note: backend uses plural for storage_locations endpoint
-      const endpoint = field === 'storage_location' ? 'storage_locations' : field
+      const endpoint = field === 'storage_location' ? 'storage_locations' : field === 'name' ? 'names' : field
       const response = await api.get(`/items/suggestions/${endpoint}`)
       return response.data.suggestions || []
     } catch (error) {
@@ -239,8 +239,8 @@ export const itemsService = {
 
       allItems.data.forEach(item => {
         const fieldValue = item[field]
-        if (field === 'storage_location' && typeof fieldValue === 'string' && fieldValue) {
-          // storage_location is a single string
+        if ((field === 'storage_location' || field === 'name') && typeof fieldValue === 'string' && fieldValue) {
+          // name and storage_location are single strings
           suggestions.add(fieldValue.trim())
         } else if (Array.isArray(fieldValue)) {
           // connection_names and cable_color_pattern are arrays
