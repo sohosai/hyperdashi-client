@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Card,
@@ -11,6 +11,8 @@ import {
   Switch,
   Select,
   SelectItem,
+  Autocomplete,
+  AutocompleteItem,
   Spinner,
   Snippet,
 } from '@heroui/react'
@@ -41,6 +43,11 @@ export function ItemForm() {
 
   // Fetch suggestions for array fields
   const { data: locationSuggestions = [] } = useItemSuggestions('storage_location')
+  const { data: itemNameSuggestions = [], isLoading: isLoadingItemNames } = useItemSuggestions('name')
+  const itemNameOptions = useMemo(
+    () => itemNameSuggestions.map(name => ({ name })),
+    [itemNameSuggestions]
+  )
 
   // Fetch containers for container selection
   const { data: containersData } = useContainers()
@@ -107,6 +114,14 @@ export function ItemForm() {
 
   // Get current form values
   const formValues = watch()
+  const filteredItemNameOptions = useMemo(() => {
+    const query = (formValues.name || '').trim().toLocaleLowerCase('ja-JP')
+    if (!query) return itemNameOptions
+
+    return itemNameOptions.filter(option =>
+      option.name.toLocaleLowerCase('ja-JP').includes(query)
+    )
+  }, [formValues.name, itemNameOptions])
 
   // Debug: Watch form values (development only)
   if (import.meta.env.VITE_DEV_MODE === 'true') {
@@ -413,14 +428,34 @@ export function ItemForm() {
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                {...register('name', { required: '備品名は必須です' })}
-                label="備品名"
-                placeholder="例: ノートパソコン"
-                errorMessage={errors.name?.message}
-                isInvalid={!!errors.name}
-                isRequired
-                value={formValues.name || ''}
+              <Controller
+                name="name"
+                control={control}
+                rules={{ required: '備品名は必須です' }}
+                render={({ field }) => (
+                  <Autocomplete
+                    items={filteredItemNameOptions}
+                    label="備品名"
+                    placeholder="例: ノートパソコン"
+                    inputValue={field.value || ''}
+                    onInputChange={field.onChange}
+                    onSelectionChange={(key) => {
+                      if (key) field.onChange(key.toString())
+                    }}
+                    allowsCustomValue
+                    isLoading={isLoadingItemNames}
+                    errorMessage={errors.name?.message}
+                    isInvalid={!!errors.name}
+                    isRequired
+                    description="登録済みの備品名から選択、または新しい名前を入力できます"
+                  >
+                    {(option) => (
+                      <AutocompleteItem key={option.name} textValue={option.name}>
+                        {option.name}
+                      </AutocompleteItem>
+                    )}
+                  </Autocomplete>
+                )}
               />
               <Input
                 {...register('label_id', { required: 'ラベルIDは必須です' })}

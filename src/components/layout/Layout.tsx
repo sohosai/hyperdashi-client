@@ -33,6 +33,7 @@ export function Layout() {
     { href: '/items', label: '備品管理', isActive: isActive('/items') },
     { href: '/containers', label: 'コンテナ管理', isActive: isActive('/containers') },
     { href: '/loans', label: '貸出管理', isActive: isActive('/loans') },
+    { href: '/connectors', label: '接続端子管理', isActive: isActive('/connectors') },
     { href: '/cable-colors', label: 'ケーブル色管理', isActive: isActive('/cable-colors') },
     { href: '/labels', label: 'ラベル生成', isActive: isActive('/labels') },
   ]

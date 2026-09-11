@@ -52,8 +52,10 @@ export function ConnectorInput({
     }
 
     const handleSelectionChange = (key: React.Key | null) => {
-        if (key && typeof key === 'string') {
-            setInputValue(key)
+        if (key && typeof key === 'string' && values.length < maxItems) {
+            onChange([...values, key])
+            // Autocompleteが選択名を入力欄へ反映した後で確実に空へ戻す
+            window.setTimeout(() => setInputValue(''), 0)
         }
     }
 
@@ -115,7 +117,7 @@ export function ConnectorInput({
                     ))}
                 </Autocomplete>
 
-                {isNewConnector ? (
+                {isNewConnector && (
                     <Tooltip content="新しいコネクタとしてマスターに登録して追加">
                         <Button
                             color="success"
@@ -129,16 +131,6 @@ export function ConnectorInput({
                             登録
                         </Button>
                     </Tooltip>
-                ) : (
-                    <Button
-                        isIconOnly
-                        color="primary"
-                        variant="flat"
-                        onPress={addItem}
-                        isDisabled={isReadOnly || !inputValue.trim() || values.length >= maxItems}
-                    >
-                        <Plus size={16} />
-                    </Button>
                 )}
             </div>
 
@@ -177,7 +169,7 @@ export function ConnectorInput({
             )}
 
             <p className="text-xs text-default-500">
-                {values.length}/{maxItems} 端子 • Enterで追加 • マスターから選択可能
+                {values.length}/{maxItems} 端子 • 候補を選ぶとすぐ追加 • 新しい端子はEnterで追加
             </p>
         </div>
     )

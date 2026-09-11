@@ -11,6 +11,7 @@ import { LabelGenerator } from '@/pages/labels/LabelGenerator'
 import { ContainersList } from '@/pages/containers/ContainersList'
 import { ContainerDetail } from '@/pages/containers/ContainerDetail'
 import { ContainerForm } from '@/pages/containers/ContainerForm'
+import { ConnectorsList } from '@/pages/connectors/ConnectorsList'
 
 export function AppRoutes() {
   return (
@@ -28,6 +29,7 @@ export function AppRoutes() {
           <Route path="new" element={<LoanForm />} />
         </Route>
         <Route path="cable-colors" element={<CableColorsList />} />
+        <Route path="connectors" element={<ConnectorsList />} />
         <Route path="labels" element={<LabelGenerator />} />
         <Route path="containers">
           <Route index element={<ContainersList />} />

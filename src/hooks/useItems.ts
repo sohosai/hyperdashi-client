@@ -102,7 +102,7 @@ export function useUndisposeItem() {
   })
 }
 
-export function useItemSuggestions(field: 'connection_names' | 'cable_color_pattern' | 'storage_location') {
+export function useItemSuggestions(field: 'name' | 'connection_names' | 'cable_color_pattern' | 'storage_location') {
   return useQuery({
     queryKey: ['items', 'suggestions', field],
     queryFn: () => itemsService.getSuggestions(field),
