@@ -35,6 +35,7 @@ export const itemsService = {
     name?: string
     label_id?: string
     model_number?: string
+    connection_names?: string
     status?: 'available' | 'on_loan' | 'disposed'
     container_id?: string
     storage_type?: string
@@ -84,6 +85,7 @@ export const itemsService = {
     name?: string
     label_id?: string
     model_number?: string
+    connection_names?: string
     status?: 'available' | 'on_loan' | 'disposed' | 'all'
     container_id?: string
     storage_type?: 'location' | 'container' | 'all'

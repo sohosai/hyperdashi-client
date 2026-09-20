@@ -71,7 +71,6 @@ export interface CableColor {
 export interface Connector {
   id: number
   name: string
-  gender?: 'male' | 'female' | 'none'
   description?: string
   created_at: string
   updated_at: string

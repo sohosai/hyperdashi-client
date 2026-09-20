@@ -28,9 +28,13 @@ export function ConnectorInput({
     const { data: connectorsData, isLoading } = useAllConnectors()
     const createConnector = useCreateConnector()
 
-    const connectorNames = connectorsData?.data?.map(c => c.name) || []
-    const normalizeConnectorName = (name: string) => name.trim().toLowerCase()
-    const connectorNameSet = new Set(connectorNames.map(normalizeConnectorName))
+    const connectors = connectorsData?.data || []
+    const normalizeConnectorName = (value: string) => value.trim().toLocaleLowerCase('ja-JP')
+    const connectorOptions = connectors.map(connector => ({
+        connector,
+        label: connector.name,
+    }))
+    const connectorNameSet = new Set(connectorOptions.map(option => normalizeConnectorName(option.label)))
 
     const addItem = () => {
         if (inputValue.trim() && values.length < maxItems) {
@@ -52,15 +56,22 @@ export function ConnectorInput({
     }
 
     const handleSelectionChange = (key: React.Key | null) => {
-        if (key && typeof key === 'string' && values.length < maxItems) {
-            onChange([...values, key])
+        if (key && values.length < maxItems) {
+            const selectedOption = connectorOptions.find(
+                option => String(option.connector.id) === String(key)
+            )
+            const selectedValue = selectedOption?.label || String(key)
+
+            if (values.includes(selectedValue)) return
+
+            onChange([...values, selectedValue])
             // Autocompleteが選択名を入力欄へ反映した後で確実に空へ戻す
             window.setTimeout(() => setInputValue(''), 0)
         }
     }
 
     const handleAddAndRegister = async () => {
-        if (!inputValue.trim()) return
+        if (!inputValue.trim() || values.length >= maxItems) return
 
         const trimmedValue = inputValue.trim()
 
@@ -74,17 +85,20 @@ export function ConnectorInput({
         }
 
         // Add to values
-        onChange([...values, trimmedValue])
+        if (!values.includes(trimmedValue)) {
+            onChange([...values, trimmedValue])
+        }
         setInputValue('')
     }
 
     // Filter suggestions based on input
-    const filteredSuggestions = connectorNames.filter(name =>
-        name.toLowerCase().includes(inputValue.toLowerCase())
+    const filteredSuggestions = connectorOptions.filter(option =>
+        normalizeConnectorName(option.label).includes(normalizeConnectorName(inputValue))
     )
 
-    const isNewConnector =
+    const isNewConnector = Boolean(
         inputValue.trim() && !connectorNameSet.has(normalizeConnectorName(inputValue))
+    )
 
     return (
         <div className="space-y-2">
@@ -110,9 +124,9 @@ export function ConnectorInput({
                     isLoading={isLoading}
                     startContent={<Plug size={14} className="text-default-400" />}
                 >
-                    {filteredSuggestions.map((name) => (
-                        <AutocompleteItem key={name}>
-                            {name}
+                    {filteredSuggestions.map(({ connector, label: connectorLabel }) => (
+                        <AutocompleteItem key={String(connector.id)} textValue={connectorLabel}>
+                            {connectorLabel}
                         </AutocompleteItem>
                     ))}
                 </Autocomplete>

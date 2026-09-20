@@ -3,7 +3,7 @@ import {
   Button,
   Card,
   CardBody,
-  Chip,
+  Input,
   Modal,
   ModalBody,
   ModalContent,
@@ -17,32 +17,110 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  Textarea,
   useDisclosure,
 } from '@heroui/react'
-import { Plug, Trash2 } from 'lucide-react'
-import { useConnectors, useDeleteConnector } from '@/hooks/useConnectors'
+import { useForm } from 'react-hook-form'
+import { Pencil, Plug, Plus, Trash2 } from 'lucide-react'
+import {
+  useConnectors,
+  useCreateConnector,
+  useDeleteConnector,
+  useUpdateConnector,
+} from '@/hooks/useConnectors'
 import { Connector } from '@/types'
 
-const genderLabels: Record<NonNullable<Connector['gender']>, string> = {
-  male: 'オス',
-  female: 'メス',
-  none: '区別なし',
+type ConnectorFormData = {
+  name: string
+  description: string
 }
 
 export function ConnectorsList() {
   const [page, setPage] = useState(1)
   const [deletingConnector, setDeletingConnector] = useState<Connector | null>(null)
-  const { isOpen, onOpen, onOpenChange } = useDisclosure()
+  const [editingConnector, setEditingConnector] = useState<Connector | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onOpenChange: onDeleteOpenChange,
+  } = useDisclosure()
+  const {
+    isOpen: isFormOpen,
+    onOpen: onFormOpen,
+    onClose: onFormClose,
+    onOpenChange: onFormOpenChange,
+  } = useDisclosure()
 
   const { data, isLoading, error } = useConnectors({ page, per_page: 20 })
+  const createMutation = useCreateConnector()
+  const updateMutation = useUpdateConnector()
   const deleteMutation = useDeleteConnector()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ConnectorFormData>({
+    defaultValues: {
+      name: '',
+      description: '',
+    },
+  })
 
   const connectors = data?.data ?? []
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / 20))
 
   const openDeleteConfirm = (connector: Connector) => {
     setDeletingConnector(connector)
-    onOpen()
+    onDeleteOpen()
+  }
+
+  const openCreateForm = () => {
+    setEditingConnector(null)
+    reset({ name: '', description: '' })
+    setFormError(null)
+    onFormOpen()
+  }
+
+  const openEditForm = (connector: Connector) => {
+    setEditingConnector(connector)
+    reset({
+      name: connector.name,
+      description: connector.description ?? '',
+    })
+    setFormError(null)
+    onFormOpen()
+  }
+
+  const handleSave = async (formData: ConnectorFormData) => {
+    try {
+      setFormError(null)
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      }
+
+      if (editingConnector) {
+        await updateMutation.mutateAsync({ id: editingConnector.id, data: payload })
+      } else {
+        await createMutation.mutateAsync({
+          ...payload,
+          description: payload.description || undefined,
+        })
+        setPage(1)
+      }
+
+      onFormClose()
+      setEditingConnector(null)
+      reset()
+    } catch (saveError) {
+      const fallbackMessage = editingConnector
+        ? '接続端子の更新に失敗しました'
+        : '接続端子の登録に失敗しました'
+      setFormError((saveError as { message?: string })?.message ?? fallbackMessage)
+    }
   }
 
   const handleDelete = async () => {
@@ -54,7 +132,7 @@ export function ConnectorsList() {
         setPage(page - 1)
       }
       setDeletingConnector(null)
-      onOpenChange()
+      onDeleteOpenChange()
     } catch (deleteError) {
       console.error('Error deleting connector:', deleteError)
     }
@@ -77,14 +155,19 @@ export function ConnectorsList() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
-        <Plug className="text-primary" size={28} />
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">接続端子管理</h1>
-          <p className="mt-1 text-sm text-default-500">
-            備品登録時に候補として表示する接続端子を管理します。
-          </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Plug className="text-primary" size={28} />
+          <div>
+            <h1 className="text-2xl font-bold sm:text-3xl">接続端子管理</h1>
+            <p className="mt-1 text-sm text-default-500">
+              備品登録時に候補として表示する接続端子を管理します。端子名と説明を登録できます。
+            </p>
+          </div>
         </div>
+        <Button color="primary" startContent={<Plus size={18} />} onPress={openCreateForm}>
+          接続端子を登録
+        </Button>
       </div>
 
       <Card>
@@ -109,7 +192,6 @@ export function ConnectorsList() {
           >
             <TableHeader>
               <TableColumn>端子名</TableColumn>
-              <TableColumn>種別</TableColumn>
               <TableColumn>説明</TableColumn>
               <TableColumn>作成日</TableColumn>
               <TableColumn align="center">操作</TableColumn>
@@ -121,21 +203,15 @@ export function ConnectorsList() {
               emptyContent="登録された接続端子がありません"
             >
               {(connector) => (
-                <TableRow key={connector.id}>
+                <TableRow
+                  key={connector.id}
+                  className="transition-colors duration-150 hover:bg-default-100/70"
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Plug className="text-default-400" size={16} />
                       <span className="font-medium">{connector.name}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {connector.gender ? (
-                      <Chip size="sm" variant="flat">
-                        {genderLabels[connector.gender]}
-                      </Chip>
-                    ) : (
-                      <span className="text-default-400">未設定</span>
-                    )}
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-default-500">
@@ -148,7 +224,18 @@ export function ConnectorsList() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center gap-1">
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="primary"
+                        title={`${connector.name}を編集`}
+                        aria-label={`${connector.name}を編集`}
+                        onPress={() => openEditForm(connector)}
+                      >
+                        <Pencil size={16} />
+                      </Button>
                       <Button
                         isIconOnly
                         size="sm"
@@ -169,7 +256,54 @@ export function ConnectorsList() {
         </CardBody>
       </Card>
 
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal isOpen={isFormOpen} onOpenChange={onFormOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <form onSubmit={handleSubmit(handleSave)}>
+              <ModalHeader>{editingConnector ? '接続端子を編集' : '接続端子を登録'}</ModalHeader>
+              <ModalBody>
+                <div className="space-y-4">
+                  <Input
+                    {...register('name', {
+                      required: '端子名は必須です',
+                      maxLength: { value: 100, message: '端子名は100文字以内で入力してください' },
+                    })}
+                    label="端子名"
+                    placeholder="例: HDMI"
+                    errorMessage={errors.name?.message}
+                    isInvalid={!!errors.name}
+                    isRequired
+                  />
+                  <Textarea
+                    {...register('description', {
+                      maxLength: { value: 500, message: '説明は500文字以内で入力してください' },
+                    })}
+                    label="説明"
+                    placeholder="必要に応じて入力してください"
+                    errorMessage={errors.description?.message}
+                    isInvalid={!!errors.description}
+                  />
+                  {formError && <p className="text-sm text-danger">{formError}</p>}
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  キャンセル
+                </Button>
+                <Button
+                  color="primary"
+                  type="submit"
+                  isLoading={createMutation.isPending || updateMutation.isPending}
+                >
+                  {editingConnector ? '保存' : '登録'}
+                </Button>
+              </ModalFooter>
+            </form>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isDeleteOpen} onOpenChange={onDeleteOpenChange}>
         <ModalContent>
           {(onClose) => (
             <>

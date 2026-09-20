@@ -13,6 +13,7 @@ export function useItems(params?: {
   name?: string
   label_id?: string
   model_number?: string
+  connection_names?: string
   status?: 'available' | 'on_loan' | 'disposed'
   container_id?: string
   storage_type?: string
