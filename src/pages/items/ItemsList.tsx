@@ -83,6 +83,11 @@ export function ItemsList() {
       initialFilters.cable_color_pattern = cableColorParam
     }
 
+    const connectionNamesParam = searchParams.get('connection_names')
+    if (connectionNamesParam) {
+      initialFilters.connection_names = connectionNamesParam
+    }
+
     return initialFilters
   })
 
@@ -130,6 +135,7 @@ export function ItemsList() {
     if (filters.storage_type) params.set('storage_type', filters.storage_type)
     if (filters.storage_location) params.set('storage_location', filters.storage_location)
     if (filters.cable_color_pattern) params.set('cable_color_pattern', filters.cable_color_pattern)
+    if (filters.connection_names) params.set('connection_names', filters.connection_names)
 
     setSearchParams(params, { replace: true })
   }, [page, perPage, searchTerm, sortDescriptor, filters, setSearchParams])
@@ -167,6 +173,7 @@ export function ItemsList() {
     if (filters.storage_type) params.storage_type = filters.storage_type
     if (filters.storage_location) params.storage_location = filters.storage_location
     if (filters.cable_color_pattern) params.cable_color_pattern = filters.cable_color_pattern
+    if (filters.connection_names) params.connection_names = filters.connection_names
 
     return params
   }, [page, perPage, searchTerm, sortDescriptor, filters])
@@ -259,6 +266,7 @@ export function ItemsList() {
         name: filters.name || undefined,
         label_id: filters.label_id || undefined,
         model_number: filters.model_number || undefined,
+        connection_names: filters.connection_names || undefined,
         status: filters.status && filters.status !== 'all' ? filters.status : undefined,
         container_id: filters.container_id || undefined,
         storage_type:

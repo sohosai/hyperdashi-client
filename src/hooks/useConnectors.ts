@@ -74,7 +74,7 @@ export function useCreateConnector() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async (data: { name: string; gender?: string; description?: string }) => {
+        mutationFn: async (data: { name: string; description?: string }) => {
             const response = await api.post<Connector>('/connectors', data)
             return response.data
         },
@@ -88,7 +88,7 @@ export function useUpdateConnector() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async ({ id, data }: { id: number; data: { name?: string; gender?: string; description?: string } }) => {
+        mutationFn: async ({ id, data }: { id: number; data: { name?: string; description?: string } }) => {
             const response = await api.put<Connector>(`/connectors/${id}`, data)
             return response.data
         },
